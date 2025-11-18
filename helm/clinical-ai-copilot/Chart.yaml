@@ -1,0 +1,28 @@
+apiVersion: v2
+name: clinical-ai-copilot
+description: HIPAA-compliant Clinical AI Copilot with Multimodal EEG + Clinical RAG
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - healthcare
+  - eeg
+  - ai
+  - machine-learning
+  - hipaa
+maintainers:
+  - name: Clinical AI Team
+    email: admin@clinical-ai.example.com
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: neo4j
+    version: "5.x.x"
+    repository: "https://helm.neo4j.com/neo4j"
+    condition: neo4j.enabled
+  - name: kafka
+    version: "26.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: kafka.enabled

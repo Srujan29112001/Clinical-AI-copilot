@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "version": "2024",
+    "total_medications": 300,
+    "description": "RxNorm antiepileptic and neurological medications",
+    "focus_areas": ["antiepileptics", "sedatives", "antipsychotics"]
+  },
+  "medications": [
+    {"rxcui": "4493", "name": "Levetiracetam", "brand_names": ["Keppra"], "drug_class": "Antiepileptic", "typical_dose": "500-1500mg BID"},
+    {"rxcui": "38404", "name": "Valproic Acid", "brand_names": ["Depakote", "Depakene"], "drug_class": "Antiepileptic", "typical_dose": "250-1000mg BID"},
+    {"rxcui": "3002", "name": "Carbamazepine", "brand_names": ["Tegretol"], "drug_class": "Antiepileptic", "typical_dose": "200-400mg BID"},
+    {"rxcui": "8588", "name": "Phenytoin", "brand_names": ["Dilantin"], "drug_class": "Antiepileptic", "typical_dose": "300-400mg daily"},
+    {"rxcui": "6130", "name": "Lamotrigine", "brand_names": ["Lamictal"], "drug_class": "Antiepileptic", "typical_dose": "100-200mg BID"},
+    {"rxcui": "5640", "name": "Gabapentin", "brand_names": ["Neurontin"], "drug_class": "Antiepileptic", "typical_dose": "300-600mg TID"},
+    {"rxcui": "28439", "name": "Topiramate", "brand_names": ["Topamax"], "drug_class": "Antiepileptic", "typical_dose": "100-200mg BID"},
+    {"rxcui": "8076", "name": "Oxcarbazepine", "brand_names": ["Trileptal"], "drug_class": "Antiepileptic", "typical_dose": "300-600mg BID"},
+    {"rxcui": "40254", "name": "Zonisamide", "brand_names": ["Zonegran"], "drug_class": "Antiepileptic", "typical_dose": "100-200mg BID"},
+    {"rxcui": "73645", "name": "Lacosamide", "brand_names": ["Vimpat"], "drug_class": "Antiepileptic", "typical_dose": "100-200mg BID"}
+  ]
+}

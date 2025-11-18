@@ -1,0 +1,307 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: clinical-ai
+  labels:
+    app: kibana
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5601
+      targetPort: 5601
+      name: http
+  selector:
+    app: kibana
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: clinical-ai
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.10.0
+          ports:
+            - containerPort: 5601
+              name: http
+
+          env:
+            # Elasticsearch connection
+            - name: ELASTICSEARCH_HOSTS
+              value: "https://elasticsearch-service:9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: "elastic"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: POSTGRES_PASSWORD
+
+            # Security (HIPAA)
+            - name: XPACK_SECURITY_ENABLED
+              value: "true"
+            - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: ENCRYPTION_KEY
+
+            # Server settings
+            - name: SERVER_NAME
+              value: "kibana.clinical-ai.example.com"
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+            - name: SERVER_PORT
+              value: "5601"
+            - name: SERVER_SSL_ENABLED
+              value: "false"  # SSL terminated at ingress
+
+            # Monitoring
+            - name: XPACK_MONITORING_ENABLED
+              value: "true"
+
+            # Audit logging
+            - name: XPACK_SECURITY_AUDIT_ENABLED
+              value: "true"
+
+          volumeMounts:
+            - name: kibana-config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 5601
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+      volumes:
+        - name: kibana-config
+          configMap:
+            name: kibana-config
+
+---
+# Kibana Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: clinical-ai
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0.0.0.0"
+    server.port: 5601
+
+    # Elasticsearch
+    elasticsearch.hosts: ["https://elasticsearch-service:9200"]
+    elasticsearch.username: "elastic"
+    elasticsearch.ssl.verificationMode: none
+
+    # Security
+    xpack.security.enabled: true
+    xpack.security.audit.enabled: true
+
+    # Monitoring
+    monitoring.enabled: true
+    monitoring.kibana.collection.enabled: true
+
+    # Session timeout (HIPAA: 15 minutes of inactivity)
+    xpack.security.session.idleTimeout: "15m"
+    xpack.security.session.lifespan: "8h"
+
+    # Reporting
+    xpack.reporting.enabled: true
+
+    # Spaces
+    xpack.spaces.enabled: true
+
+    # Index patterns
+    kibana.index: ".kibana"
+    kibana.defaultAppId: "discover"
+
+---
+# Filebeat DaemonSet to ship logs from all pods
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: filebeat
+  namespace: clinical-ai
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: filebeat
+rules:
+  - apiGroups: [""]
+    resources:
+      - namespaces
+      - pods
+      - nodes
+    verbs:
+      - get
+      - watch
+      - list
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: filebeat
+subjects:
+  - kind: ServiceAccount
+    name: filebeat
+    namespace: clinical-ai
+roleRef:
+  kind: ClusterRole
+  name: filebeat
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: clinical-ai
+  labels:
+    app: filebeat
+spec:
+  selector:
+    matchLabels:
+      app: filebeat
+  template:
+    metadata:
+      labels:
+        app: filebeat
+    spec:
+      serviceAccountName: filebeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+
+      containers:
+        - name: filebeat
+          image: docker.elastic.co/beats/filebeat:8.10.0
+          args:
+            - "-c"
+            - "/etc/filebeat.yml"
+            - "-e"
+
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LOGSTASH_HOSTS
+              value: "logstash-service:5044"
+
+          volumeMounts:
+            - name: filebeat-config
+              mountPath: /etc/filebeat.yml
+              subPath: filebeat.yml
+              readOnly: true
+            - name: data
+              mountPath: /usr/share/filebeat/data
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+      volumes:
+        - name: filebeat-config
+          configMap:
+            name: filebeat-config
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: data
+          hostPath:
+            path: /var/lib/filebeat-data
+            type: DirectoryOrCreate
+
+---
+# Filebeat Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: clinical-ai
+data:
+  filebeat.yml: |
+    filebeat.inputs:
+      - type: container
+        paths:
+          - /var/log/containers/*.log
+        processors:
+          - add_kubernetes_metadata:
+              host: ${NODE_NAME}
+              matchers:
+                - logs_path:
+                    logs_path: "/var/log/containers/"
+
+          # Only ship logs from clinical-ai namespace
+          - drop_event:
+              when:
+                not:
+                  equals:
+                    kubernetes.namespace: "clinical-ai"
+
+    # Outputs
+    output.logstash:
+      hosts: ["${LOGSTASH_HOSTS}"]
+
+    # Logging
+    logging.level: info
+    logging.to_stderr: true
+    logging.to_files: false

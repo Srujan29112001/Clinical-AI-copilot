@@ -1,0 +1,218 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash-service
+  namespace: clinical-ai
+  labels:
+    app: logstash
+spec:
+  ports:
+    - port: 5044
+      targetPort: 5044
+      name: beats
+    - port: 9600
+      targetPort: 9600
+      name: http
+  selector:
+    app: logstash
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: clinical-ai
+  labels:
+    app: logstash
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:8.10.0
+          ports:
+            - containerPort: 5044
+              name: beats
+            - containerPort: 9600
+              name: http
+
+          env:
+            - name: LS_JAVA_OPTS
+              value: "-Xmx2g -Xms2g"
+            - name: ELASTICSEARCH_HOSTS
+              value: "https://elasticsearch-service:9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: "elastic"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: POSTGRES_PASSWORD
+
+          volumeMounts:
+            - name: logstash-config
+              mountPath: /usr/share/logstash/pipeline
+            - name: logstash-patterns
+              mountPath: /usr/share/logstash/patterns
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 120
+            periodSeconds: 30
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 60
+            periodSeconds: 10
+
+      volumes:
+        - name: logstash-config
+          configMap:
+            name: logstash-config
+        - name: logstash-patterns
+          configMap:
+            name: logstash-patterns
+
+---
+# Logstash Pipeline Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: clinical-ai
+data:
+  logstash.conf: |
+    input {
+      # Beats input (Filebeat from clinical AI pods)
+      beats {
+        port => 5044
+        ssl => false  # Enable SSL in production
+      }
+
+      # HTTP input for direct log shipping
+      http {
+        port => 8080
+        codec => json
+      }
+    }
+
+    filter {
+      # Parse JSON logs
+      if [message] =~ /^\{.*\}$/ {
+        json {
+          source => "message"
+          target => "parsed"
+        }
+      }
+
+      # Extract audit log fields (HIPAA)
+      if [type] == "audit" {
+        grok {
+          match => {
+            "message" => "%{TIMESTAMP_ISO8601:timestamp} \[%{LOGLEVEL:log_level}\] user_id=%{USERNAME:user_id} patient_id=%{USERNAME:patient_id} action=%{WORD:action} ip=%{IP:client_ip} result=%{WORD:result}"
+          }
+        }
+
+        # Hash patient IDs for privacy (if not already hashed)
+        fingerprint {
+          source => "patient_id"
+          target => "patient_id_hash"
+          method => "SHA256"
+          key => "HIPAA_COMPLIANCE_KEY"
+        }
+
+        # Remove original patient_id
+        mutate {
+          remove_field => ["patient_id"]
+        }
+      }
+
+      # Parse EEG analysis logs
+      if [type] == "eeg_analysis" {
+        grok {
+          match => {
+            "message" => "Seizure probability: %{NUMBER:seizure_probability:float} for patient %{USERNAME:patient_hash}"
+          }
+        }
+
+        # Alert on high seizure probability
+        if [seizure_probability] and [seizure_probability] > 0.8 {
+          mutate {
+            add_tag => ["high_risk_seizure"]
+          }
+        }
+      }
+
+      # Add metadata
+      mutate {
+        add_field => {
+          "[@metadata][index_prefix]" => "clinical-ai-logs"
+          "environment" => "production"
+        }
+      }
+
+      # Enrich with geo-location (optional)
+      if [client_ip] {
+        geoip {
+          source => "client_ip"
+          target => "geoip"
+        }
+      }
+
+      # Add timestamp
+      date {
+        match => ["timestamp", "ISO8601", "UNIX"]
+        target => "@timestamp"
+      }
+    }
+
+    output {
+      # Output to Elasticsearch
+      elasticsearch {
+        hosts => ["${ELASTICSEARCH_HOSTS}"]
+        user => "${ELASTICSEARCH_USERNAME}"
+        password => "${ELASTICSEARCH_PASSWORD}"
+        ssl => true
+        ssl_certificate_verification => false  # Set to true in production with proper certs
+        index => "%{[@metadata][index_prefix]}-%{+YYYY.MM.dd}"
+        document_type => "_doc"
+      }
+
+      # Debug output (disable in production)
+      # stdout {
+      #   codec => rubydebug
+      # }
+    }
+
+---
+# Custom Grok Patterns
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-patterns
+  namespace: clinical-ai
+data:
+  clinical-ai-patterns: |
+    # Custom patterns for clinical AI logs
+    PATIENT_ID [A-Z0-9]{32}
+    ANALYSIS_TYPE (seizure_detection|sleep_staging|anomaly_detection)
+    CONFIDENCE_SCORE [0-9]\.[0-9]{4}

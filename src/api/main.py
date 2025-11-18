@@ -684,6 +684,15 @@ async def websocket_status(patient_id: str, user_id: str = Depends(verify_token)
     }
 
 
+# Include admin endpoints
+try:
+    from src.api.admin_endpoints import router as admin_router
+    app.include_router(admin_router)
+    logger.info("Admin endpoints loaded successfully")
+except Exception as e:
+    logger.error(f"Failed to load admin endpoints: {str(e)}")
+
+
 def main():
     """Main entry point"""
     import uvicorn

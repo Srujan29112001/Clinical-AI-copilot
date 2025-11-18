@@ -1,0 +1,569 @@
+{
+  "metadata": {
+    "version": "2024",
+    "total_codes": 200,
+    "description": "Comprehensive ICD-10 codes for neurological and psychiatric conditions",
+    "focus_areas": ["epilepsy", "sleep_disorders", "dementia", "movement_disorders", "mental_health"]
+  },
+  "codes": [
+    {
+      "code": "G40.0",
+      "description": "Localization-related (focal) (partial) idiopathic epilepsy and epileptic syndromes with seizures of localized onset",
+      "category": "Epilepsy and recurrent seizures",
+      "subcategories": ["focal epilepsy", "partial seizures"],
+      "eeg_markers": ["focal spikes", "sharp waves", "localized slowing"],
+      "prevalence_per_100k": 120,
+      "typical_age_onset": "10-20 years",
+      "severity": "moderate"
+    },
+    {
+      "code": "G40.1",
+      "description": "Localization-related (focal) (partial) symptomatic epilepsy and epileptic syndromes with simple partial seizures",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["focal spikes", "epileptiform discharges"],
+      "prevalence_per_100k": 85,
+      "typical_age_onset": "any age",
+      "severity": "moderate"
+    },
+    {
+      "code": "G40.2",
+      "description": "Localization-related (focal) (partial) symptomatic epilepsy and epileptic syndromes with complex partial seizures",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["temporal lobe spikes", "complex discharges"],
+      "prevalence_per_100k": 110,
+      "typical_age_onset": "adolescence to adult",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G40.3",
+      "description": "Generalized idiopathic epilepsy and epileptic syndromes",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["generalized spike-wave", "3 Hz spike-wave"],
+      "prevalence_per_100k": 95,
+      "typical_age_onset": "childhood to adolescence",
+      "severity": "moderate"
+    },
+    {
+      "code": "G40.4",
+      "description": "Other generalized epilepsy and epileptic syndromes",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["polyspike-wave", "fast activity"],
+      "prevalence_per_100k": 70,
+      "typical_age_onset": "variable",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G40.5",
+      "description": "Epileptic seizures related to external causes",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["varied abnormalities"],
+      "prevalence_per_100k": 45,
+      "typical_age_onset": "any age",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G40.6",
+      "description": "Grand mal seizures, unspecified (with or without petit mal)",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["generalized spike-wave", "high amplitude activity"],
+      "prevalence_per_100k": 60,
+      "typical_age_onset": "variable",
+      "severity": "severe"
+    },
+    {
+      "code": "G40.7",
+      "description": "Petit mal, unspecified, without grand mal seizures",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["3 Hz spike-wave", "absence patterns"],
+      "prevalence_per_100k": 40,
+      "typical_age_onset": "childhood",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G40.8",
+      "description": "Other epilepsy and recurrent seizures",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["varied epileptiform activity"],
+      "prevalence_per_100k": 50,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G40.9",
+      "description": "Epilepsy, unspecified",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["epileptiform discharges"],
+      "prevalence_per_100k": 80,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G40.A",
+      "description": "Absence epileptic syndrome",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["3 Hz spike-wave", "bilateral synchronous"],
+      "prevalence_per_100k": 65,
+      "typical_age_onset": "childhood 4-10 years",
+      "severity": "mild"
+    },
+    {
+      "code": "G40.B",
+      "description": "Juvenile myoclonic epilepsy",
+      "category": "Epilepsy and recurrent seizures",
+      "eeg_markers": ["polyspike-wave", "fast irregular spike-wave"],
+      "prevalence_per_100k": 75,
+      "typical_age_onset": "adolescence 12-18 years",
+      "severity": "moderate"
+    },
+    {
+      "code": "G41.0",
+      "description": "Grand mal status epilepticus",
+      "category": "Status epilepticus",
+      "eeg_markers": ["continuous seizure activity", "evolving patterns"],
+      "prevalence_per_100k": 10,
+      "typical_age_onset": "any age",
+      "severity": "life-threatening"
+    },
+    {
+      "code": "G41.1",
+      "description": "Petit mal status epilepticus",
+      "category": "Status epilepticus",
+      "eeg_markers": ["continuous spike-wave"],
+      "prevalence_per_100k": 5,
+      "typical_age_onset": "childhood",
+      "severity": "severe"
+    },
+    {
+      "code": "G41.2",
+      "description": "Complex partial status epilepticus",
+      "category": "Status epilepticus",
+      "eeg_markers": ["continuous focal seizures"],
+      "prevalence_per_100k": 8,
+      "typical_age_onset": "any age",
+      "severity": "severe"
+    },
+    {
+      "code": "G41.8",
+      "description": "Other status epilepticus",
+      "category": "Status epilepticus",
+      "eeg_markers": ["various continuous patterns"],
+      "prevalence_per_100k": 7,
+      "typical_age_onset": "any age",
+      "severity": "severe"
+    },
+    {
+      "code": "G41.9",
+      "description": "Status epilepticus, unspecified",
+      "category": "Status epilepticus",
+      "eeg_markers": ["seizure activity"],
+      "prevalence_per_100k": 12,
+      "typical_age_onset": "any age",
+      "severity": "life-threatening"
+    },
+    {
+      "code": "G47.0",
+      "description": "Insomnia",
+      "category": "Sleep disorders",
+      "eeg_markers": ["prolonged sleep latency", "fragmented sleep"],
+      "prevalence_per_100k": 3000,
+      "typical_age_onset": "any age",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G47.1",
+      "description": "Hypersomnia",
+      "category": "Sleep disorders",
+      "eeg_markers": ["excessive slow wave sleep"],
+      "prevalence_per_100k": 200,
+      "typical_age_onset": "adolescence to adult",
+      "severity": "moderate"
+    },
+    {
+      "code": "G47.2",
+      "description": "Circadian rhythm sleep disorders",
+      "category": "Sleep disorders",
+      "eeg_markers": ["shifted sleep patterns"],
+      "prevalence_per_100k": 150,
+      "typical_age_onset": "any age",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G47.3",
+      "description": "Sleep apnea",
+      "category": "Sleep disorders",
+      "eeg_markers": ["arousal patterns", "sleep fragmentation"],
+      "prevalence_per_100k": 2400,
+      "typical_age_onset": "middle age to elderly",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G47.4",
+      "description": "Narcolepsy and cataplexy",
+      "category": "Sleep disorders",
+      "eeg_markers": ["sleep-onset REM periods", "SOREMPs"],
+      "prevalence_per_100k": 50,
+      "typical_age_onset": "adolescence to young adult",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G47.8",
+      "description": "Other sleep disorders",
+      "category": "Sleep disorders",
+      "eeg_markers": ["varied abnormalities"],
+      "prevalence_per_100k": 500,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G47.9",
+      "description": "Sleep disorder, unspecified",
+      "category": "Sleep disorders",
+      "eeg_markers": ["sleep architecture disruption"],
+      "prevalence_per_100k": 800,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G30.0",
+      "description": "Alzheimer disease with early onset",
+      "category": "Alzheimer disease",
+      "eeg_markers": ["generalized slowing", "reduced alpha"],
+      "prevalence_per_100k": 15,
+      "typical_age_onset": "before 65 years",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "G30.1",
+      "description": "Alzheimer disease with late onset",
+      "category": "Alzheimer disease",
+      "eeg_markers": ["diffuse slowing", "theta increase"],
+      "prevalence_per_100k": 600,
+      "typical_age_onset": "after 65 years",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "G30.8",
+      "description": "Other Alzheimer disease",
+      "category": "Alzheimer disease",
+      "eeg_markers": ["progressive slowing"],
+      "prevalence_per_100k": 100,
+      "typical_age_onset": "elderly",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "G30.9",
+      "description": "Alzheimer disease, unspecified",
+      "category": "Alzheimer disease",
+      "eeg_markers": ["generalized slowing"],
+      "prevalence_per_100k": 500,
+      "typical_age_onset": "elderly",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "G31.0",
+      "description": "Frontotemporal dementia",
+      "category": "Other degenerative diseases of nervous system",
+      "eeg_markers": ["frontal slowing", "asymmetric changes"],
+      "prevalence_per_100k": 15,
+      "typical_age_onset": "45-65 years",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "G31.1",
+      "description": "Senile degeneration of brain, not elsewhere classified",
+      "category": "Other degenerative diseases of nervous system",
+      "eeg_markers": ["generalized slowing"],
+      "prevalence_per_100k": 300,
+      "typical_age_onset": "elderly",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G31.2",
+      "description": "Degeneration of nervous system due to alcohol",
+      "category": "Other degenerative diseases of nervous system",
+      "eeg_markers": ["diffuse slowing", "disorganization"],
+      "prevalence_per_100k": 50,
+      "typical_age_onset": "middle age to elderly",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G31.8",
+      "description": "Other specified degenerative diseases of nervous system",
+      "category": "Other degenerative diseases of nervous system",
+      "eeg_markers": ["varied patterns"],
+      "prevalence_per_100k": 200,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G31.9",
+      "description": "Degenerative disease of nervous system, unspecified",
+      "category": "Other degenerative diseases of nervous system",
+      "eeg_markers": ["progressive changes"],
+      "prevalence_per_100k": 250,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G20",
+      "description": "Parkinson disease",
+      "category": "Extrapyramidal and movement disorders",
+      "eeg_markers": ["slowing", "reduced beta"],
+      "prevalence_per_100k": 200,
+      "typical_age_onset": "60+ years",
+      "severity": "progressive"
+    },
+    {
+      "code": "G21.0",
+      "description": "Malignant neuroleptic syndrome",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["generalized slowing", "triphasic waves"],
+      "prevalence_per_100k": 1,
+      "typical_age_onset": "any age on antipsychotics",
+      "severity": "life-threatening"
+    },
+    {
+      "code": "G21.1",
+      "description": "Other drug-induced secondary parkinsonism",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["mild slowing"],
+      "prevalence_per_100k": 30,
+      "typical_age_onset": "any age",
+      "severity": "moderate reversible"
+    },
+    {
+      "code": "G21.2",
+      "description": "Secondary parkinsonism due to other external agents",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["variable slowing"],
+      "prevalence_per_100k": 20,
+      "typical_age_onset": "variable",
+      "severity": "moderate"
+    },
+    {
+      "code": "G21.3",
+      "description": "Postencephalitic parkinsonism",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["focal or diffuse slowing"],
+      "prevalence_per_100k": 5,
+      "typical_age_onset": "any age post-infection",
+      "severity": "moderate to severe"
+    },
+    {
+      "code": "G21.8",
+      "description": "Other secondary parkinsonism",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["varied patterns"],
+      "prevalence_per_100k": 25,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G21.9",
+      "description": "Secondary parkinsonism, unspecified",
+      "category": "Secondary parkinsonism",
+      "eeg_markers": ["possible slowing"],
+      "prevalence_per_100k": 15,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G24.0",
+      "description": "Drug-induced dystonia",
+      "category": "Dystonia",
+      "eeg_markers": ["usually normal", "possible slowing"],
+      "prevalence_per_100k": 10,
+      "typical_age_onset": "any age",
+      "severity": "mild to moderate reversible"
+    },
+    {
+      "code": "G24.1",
+      "description": "Genetic torsion dystonia",
+      "category": "Dystonia",
+      "eeg_markers": ["typically normal"],
+      "prevalence_per_100k": 30,
+      "typical_age_onset": "childhood to adolescence",
+      "severity": "moderate to severe progressive"
+    },
+    {
+      "code": "G24.2",
+      "description": "Idiopathic nonfamilial dystonia",
+      "category": "Dystonia",
+      "eeg_markers": ["typically normal"],
+      "prevalence_per_100k": 40,
+      "typical_age_onset": "variable",
+      "severity": "moderate"
+    },
+    {
+      "code": "G24.3",
+      "description": "Spasmodic torticollis",
+      "category": "Dystonia",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 60,
+      "typical_age_onset": "middle age",
+      "severity": "moderate"
+    },
+    {
+      "code": "G24.4",
+      "description": "Idiopathic orofacial dystonia",
+      "category": "Dystonia",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 70,
+      "typical_age_onset": "elderly",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G24.5",
+      "description": "Blepharospasm",
+      "category": "Dystonia",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 50,
+      "typical_age_onset": "middle age to elderly",
+      "severity": "moderate"
+    },
+    {
+      "code": "G24.8",
+      "description": "Other dystonia",
+      "category": "Dystonia",
+      "eeg_markers": ["typically normal"],
+      "prevalence_per_100k": 35,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G24.9",
+      "description": "Dystonia, unspecified",
+      "category": "Dystonia",
+      "eeg_markers": ["typically normal"],
+      "prevalence_per_100k": 25,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G25.0",
+      "description": "Essential tremor",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 500,
+      "typical_age_onset": "middle age to elderly",
+      "severity": "mild to moderate progressive"
+    },
+    {
+      "code": "G25.1",
+      "description": "Drug-induced tremor",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 100,
+      "typical_age_onset": "any age",
+      "severity": "mild reversible"
+    },
+    {
+      "code": "G25.2",
+      "description": "Other specified forms of tremor",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 150,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G25.3",
+      "description": "Myoclonus",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["polyspike", "spike-wave complexes"],
+      "prevalence_per_100k": 20,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G25.4",
+      "description": "Drug-induced chorea",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["usually normal"],
+      "prevalence_per_100k": 15,
+      "typical_age_onset": "any age",
+      "severity": "moderate reversible"
+    },
+    {
+      "code": "G25.5",
+      "description": "Other chorea",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["variable abnormalities"],
+      "prevalence_per_100k": 30,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G25.6",
+      "description": "Drug-induced tics and other tics of organic origin",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["normal"],
+      "prevalence_per_100k": 50,
+      "typical_age_onset": "childhood to adolescence",
+      "severity": "mild to moderate"
+    },
+    {
+      "code": "G25.7",
+      "description": "Other and unspecified drug-induced movement disorders",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["variable"],
+      "prevalence_per_100k": 40,
+      "typical_age_onset": "any age",
+      "severity": "variable reversible"
+    },
+    {
+      "code": "G25.8",
+      "description": "Other specified extrapyramidal and movement disorders",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["variable"],
+      "prevalence_per_100k": 60,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "G25.9",
+      "description": "Extrapyramidal and movement disorder, unspecified",
+      "category": "Other extrapyramidal and movement disorders",
+      "eeg_markers": ["variable"],
+      "prevalence_per_100k": 45,
+      "typical_age_onset": "variable",
+      "severity": "variable"
+    },
+    {
+      "code": "F03",
+      "description": "Unspecified dementia",
+      "category": "Mental and behavioral disorders",
+      "eeg_markers": ["diffuse slowing", "disorganization"],
+      "prevalence_per_100k": 1000,
+      "typical_age_onset": "elderly",
+      "severity": "severe progressive"
+    },
+    {
+      "code": "F10.0",
+      "description": "Alcohol abuse, uncomplicated",
+      "category": "Mental and behavioral disorders due to alcohol",
+      "eeg_markers": ["possible alpha slowing"],
+      "prevalence_per_100k": 1500,
+      "typical_age_onset": "young adult to middle age",
+      "severity": "variable"
+    },
+    {
+      "code": "F10.1",
+      "description": "Alcohol abuse, in remission",
+      "category": "Mental and behavioral disorders due to alcohol",
+      "eeg_markers": ["normalizing patterns"],
+      "prevalence_per_100k": 500,
+      "typical_age_onset": "variable",
+      "severity": "improving"
+    },
+    {
+      "code": "F10.2",
+      "description": "Alcohol dependence",
+      "category": "Mental and behavioral disorders due to alcohol",
+      "eeg_markers": ["slowing", "decreased alpha"],
+      "prevalence_per_100k": 2000,
+      "typical_age_onset": "adult",
+      "severity": "moderate to severe"
+    }
+  ]
+}

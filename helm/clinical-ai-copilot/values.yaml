@@ -1,0 +1,148 @@
+# Default values for clinical-ai-copilot
+replicaCount: 2
+
+image:
+  repository: clinical-ai-copilot
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: api.clinical-ai.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: clinical-ai-tls
+      hosts:
+        - api.clinical-ai.example.com
+
+resources:
+  requests:
+    cpu: 2000m
+    memory: 8Gi
+    nvidia.com/gpu: 1
+  limits:
+    cpu: 8000m
+    memory: 16Gi
+    nvidia.com/gpu: 1
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  nvidia.com/gpu: "true"
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+affinity: {}
+
+# Application configuration
+config:
+  modelPath: /models
+  maxBatchSize: 4
+  useFP16: true
+  encryptionEnabled: true
+  auditRetentionDays: 2555
+
+# PostgreSQL subchart
+postgresql:
+  enabled: true
+  auth:
+    database: clinical_ai
+    username: clinical_admin
+    existingSecret: clinical-ai-secrets
+  primary:
+    persistence:
+      size: 100Gi
+
+# Neo4j subchart
+neo4j:
+  enabled: true
+  neo4j:
+    password: "CHANGE_ME"
+  volumes:
+    data:
+      mode: "defaultStorageClass"
+      defaultStorageClass:
+        requests:
+          storage: 50Gi
+
+# Kafka subchart
+kafka:
+  enabled: true
+  persistence:
+    size: 50Gi
+  zookeeper:
+    persistence:
+      size: 10Gi
+
+# Monitoring
+prometheus:
+  enabled: true
+
+grafana:
+  enabled: true
+
+# ELK Stack
+elasticsearch:
+  enabled: true
+  replicas: 3
+  volumeClaimTemplate:
+    resources:
+      requests:
+        storage: 100Gi
+
+logstash:
+  enabled: true
+
+kibana:
+  enabled: true
+
+# Vault
+vault:
+  enabled: true

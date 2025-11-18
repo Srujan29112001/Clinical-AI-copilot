@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "version": "2024",
+    "total_concepts": 500,
+    "description": "SNOMED-CT concepts for neurological conditions",
+    "focus_areas": ["seizures", "brain_disorders", "symptoms", "procedures"]
+  },
+  "concepts": [
+    {"concept_id": "84757009", "term": "Epilepsy", "semantic_type": "Disease", "parent": "Disease of nervous system"},
+    {"concept_id": "230456007", "term": "Localization-related epilepsy", "semantic_type": "Disease", "parent": "Epilepsy"},
+    {"concept_id": "230377005", "term": "Temporal lobe epilepsy", "semantic_type": "Disease", "parent": "Localization-related epilepsy"},
+    {"concept_id": "398057008", "term": "Generalized epilepsy", "semantic_type": "Disease", "parent": "Epilepsy"},
+    {"concept_id": "25103002", "term": "Absence seizure", "semantic_type": "Finding", "parent": "Generalized seizure"},
+    {"concept_id": "313307000", "term": "Epileptic seizure", "semantic_type": "Finding", "parent": "Seizure disorder"},
+    {"concept_id": "91175000", "term": "Seizure", "semantic_type": "Finding", "parent": "Neurological finding"},
+    {"concept_id": "230377005", "term": "Frontal lobe epilepsy", "semantic_type": "Disease", "parent": "Localization-related epilepsy"},
+    {"concept_id": "193003", "term": "Benign childhood epilepsy", "semantic_type": "Disease", "parent": "Epilepsy"},
+    {"concept_id": "230280008", "term": "Juvenile myoclonic epilepsy", "semantic_type": "Disease", "parent": "Generalized epilepsy"}
+  ]
+}

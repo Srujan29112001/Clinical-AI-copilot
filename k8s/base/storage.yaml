@@ -1,0 +1,115 @@
+# StorageClass for encrypted PHI data
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: encrypted-ssd
+provisioner: kubernetes.io/aws-ebs  # Change based on cloud provider
+parameters:
+  type: gp3
+  encrypted: "true"
+  kmsKeyId: "arn:aws:kms:us-east-1:ACCOUNT:key/KEY-ID"  # HIPAA-compliant encryption
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# PostgreSQL Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: clinical-ai
+  labels:
+    app: postgres
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Neo4j Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neo4j-data-pvc
+  namespace: clinical-ai
+  labels:
+    app: neo4j
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Qdrant Vector Store
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qdrant-pvc
+  namespace: clinical-ai
+  labels:
+    app: qdrant
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# Kafka Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-pvc
+  namespace: clinical-ai
+  labels:
+    app: kafka
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Model Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models-pvc
+  namespace: clinical-ai
+  labels:
+    app: clinical-ai
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteMany  # Shared across multiple API pods
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Audit Logs Storage (long-term retention)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: audit-logs-pvc
+  namespace: clinical-ai
+  labels:
+    app: clinical-ai
+    compliance: hipaa
+spec:
+  storageClassName: encrypted-ssd
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi  # 7 years of audit logs

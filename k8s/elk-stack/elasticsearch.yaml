@@ -1,0 +1,228 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+  namespace: clinical-ai
+  labels:
+    app: elasticsearch
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+      name: http
+    - port: 9300
+      targetPort: 9300
+      name: transport
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: elasticsearch
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: clinical-ai
+  labels:
+    app: elasticsearch
+spec:
+  serviceName: elasticsearch-service
+  replicas: 3  # Cluster with 3 nodes for HA
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+
+      initContainers:
+        # Increase max map count for Elasticsearch
+        - name: increase-vm-max-map-count
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - sysctl -w vm.max_map_count=262144
+          securityContext:
+            privileged: true
+
+        # Set permissions
+        - name: fix-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /usr/share/elasticsearch/data
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+          securityContext:
+            privileged: true
+
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.10.0
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+
+          env:
+            # Cluster settings
+            - name: cluster.name
+              value: "clinical-ai-logs"
+            - name: node.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: discovery.seed_hosts
+              value: "elasticsearch-0.elasticsearch-service,elasticsearch-1.elasticsearch-service,elasticsearch-2.elasticsearch-service"
+            - name: cluster.initial_master_nodes
+              value: "elasticsearch-0,elasticsearch-1,elasticsearch-2"
+
+            # Memory settings
+            - name: ES_JAVA_OPTS
+              value: "-Xms4g -Xmx4g"
+
+            # Security (HIPAA compliance)
+            - name: xpack.security.enabled
+              value: "true"
+            - name: xpack.security.transport.ssl.enabled
+              value: "true"
+            - name: xpack.security.http.ssl.enabled
+              value: "true"
+            - name: xpack.security.audit.enabled
+              value: "true"
+
+            # Authentication
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: POSTGRES_PASSWORD  # Reuse for simplicity
+
+            # Monitoring
+            - name: xpack.monitoring.collection.enabled
+              value: "true"
+
+            # Storage settings
+            - name: path.data
+              value: /usr/share/elasticsearch/data
+            - name: path.logs
+              value: /usr/share/elasticsearch/logs
+
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+            - name: es-config
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+            - name: ssl-certs
+              mountPath: /usr/share/elasticsearch/config/certs
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "6Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health
+              port: 9200
+              scheme: HTTPS
+              httpHeaders:
+                - name: Authorization
+                  value: "Basic ZWxhc3RpYzpjaGFuZ2VtZQ=="  # Base64: elastic:changeme (CHANGE IN PRODUCTION)
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=5s
+              port: 9200
+              scheme: HTTPS
+              httpHeaders:
+                - name: Authorization
+                  value: "Basic ZWxhc3RpYzpjaGFuZ2VtZQ=="
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+      volumes:
+        - name: es-config
+          configMap:
+            name: elasticsearch-config
+        - name: ssl-certs
+          secret:
+            secretName: clinical-ai-tls
+
+      # Anti-affinity to spread ES nodes across different hosts
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - elasticsearch
+              topologyKey: kubernetes.io/hostname
+
+  volumeClaimTemplates:
+    - metadata:
+        name: es-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: encrypted-ssd
+        resources:
+          requests:
+            storage: 100Gi
+
+---
+# Elasticsearch Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+  namespace: clinical-ai
+data:
+  elasticsearch.yml: |
+    cluster.name: clinical-ai-logs
+    network.host: 0.0.0.0
+
+    # Security
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: true
+    xpack.security.http.ssl.enabled: true
+
+    # Audit logging for HIPAA compliance
+    xpack.security.audit.enabled: true
+    xpack.security.audit.logfile.events.include:
+      - access_granted
+      - access_denied
+      - authentication_failed
+      - authentication_successful
+      - connection_denied
+      - connection_granted
+
+    # Index lifecycle management
+    xpack.ilm.enabled: true
+
+    # Monitoring
+    xpack.monitoring.collection.enabled: true
+
+    # Performance
+    indices.memory.index_buffer_size: 30%
+    indices.queries.cache.size: 10%
