@@ -1,0 +1,113 @@
+# Model Configuration for Clinical AI Copilot
+
+# Seizure Detection Model (CNN-LSTM)
+seizure_detection:
+  # Input configuration
+  channels: 16
+  sampling_rate: 256
+  window_size: 256  # 1 second
+  num_windows: 10   # 10 seconds total
+
+  # CNN configuration
+  cnn_filters: [32, 64, 128]
+  kernel_sizes: [[1, 32], [1, 16], [1, 8]]
+  pool_sizes: [[1, 4], [1, 4], [1, 2]]
+
+  # LSTM configuration
+  lstm_hidden_size: 256
+  lstm_num_layers: 2
+  lstm_dropout: 0.3
+  bidirectional: true
+
+  # Attention configuration
+  attention_heads: 8
+  attention_dropout: 0.1
+
+  # Classification
+  num_classes: 3  # Normal, Pre-ictal, Ictal
+  classifier_hidden: [256, 128]
+  classifier_dropout: 0.5
+
+  # Optimization
+  use_batch_norm: true
+  use_dropout: true
+  precision: fp16
+
+# Sleep Stage Classification Model (Transformer)
+sleep_classification:
+  channels: 16
+  sampling_rate: 256
+  epoch_length: 7680  # 30 seconds
+  num_classes: 5      # Wake, N1, N2, N3, REM
+
+  # Transformer configuration
+  d_model: 256
+  nhead: 8
+  num_encoder_layers: 6
+  dim_feedforward: 1024
+  dropout: 0.1
+
+  # Patch embedding
+  patch_size: 128
+  max_seq_len: 128
+
+  precision: fp16
+
+# Spiking Neural Network
+spiking_network:
+  input_size: 256
+  hidden_sizes: [128, 64]
+  output_size: 16
+
+  # LIF neuron parameters
+  beta: 0.95           # Membrane decay
+  threshold: 1.0       # Spike threshold
+  num_steps: 25        # Time steps
+
+  precision: int8
+
+# Multimodal Fusion Model
+multimodal_fusion:
+  # Input dimensions
+  eeg_feature_dim: 512
+  text_feature_dim: 4096  # Llama embedding
+  hidden_dim: 256
+
+  # Cross-attention
+  num_cross_attention_layers: 4
+  attention_heads: 8
+  dropout: 0.1
+
+  # Mamba2 SSM
+  mamba_d_model: 256
+  mamba_d_state: 64
+  mamba_d_conv: 4
+  mamba_expand: 2
+
+  # Output heads
+  num_diagnoses: 500       # ICD-10 codes
+  num_severity_levels: 5
+  num_urgency_levels: 3
+
+  precision: fp16
+
+# Model Paths
+model_paths:
+  seizure_detection: ./models/seizure_cnn_lstm.pth
+  sleep_classification: ./models/sleep_transformer.pth
+  spiking_network: ./models/snn.pth
+  multimodal_fusion: ./models/multimodal_fusion.pth
+
+# GPU Configuration
+gpu:
+  device: cuda:0
+  memory_fraction: 0.9
+  benchmark: true
+  deterministic: false
+  allow_tf32: true
+
+# Inference
+inference:
+  batch_size: 4
+  use_amp: true
+  num_workers: 4

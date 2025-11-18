@@ -1,0 +1,118 @@
+# Prometheus Alert Rules for Clinical AI Copilot
+
+groups:
+  - name: clinical_ai_alerts
+    interval: 30s
+    rules:
+      # API Health
+      - alert: APIDown
+        expr: up{job="clinical-ai-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Clinical AI API is down"
+          description: "The Clinical AI API has been down for more than 1 minute"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec"
+
+      # GPU Memory
+      - alert: GPUMemoryHigh
+        expr: nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU memory usage is high"
+          description: "GPU memory usage is above 90%"
+
+      # Seizure Detection Latency
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model inference latency is high"
+          description: "95th percentile latency is {{ $value }} seconds"
+
+      # Database Connection
+      - alert: DatabaseDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Cannot connect to PostgreSQL"
+
+      # Neo4j Down
+      - alert: Neo4jDown
+        expr: up{job="neo4j"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Neo4j graph database is down"
+          description: "Cannot connect to Neo4j"
+
+      # Kafka Lag
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer lag is {{ $value }} messages"
+
+      # Disk Space
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space is low"
+          description: "Less than 10% disk space available"
+
+      # Critical Patient Alert
+      - alert: CriticalPatientAlert
+        expr: rate(clinical_alerts_total{severity="CRITICAL"}[1m]) > 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical patient alert detected"
+          description: "A critical seizure or anomaly was detected"
+
+  - name: performance_alerts
+    interval: 1m
+    rules:
+      # Request Rate
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High request rate"
+          description: "Request rate is {{ $value }} req/sec"
+
+      # Response Time
+      - alert: SlowResponses
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API responses are slow"
+          description: "95th percentile response time is {{ $value }} seconds"

@@ -1,0 +1,162 @@
+# Training Configuration for Clinical AI Copilot
+
+# General Training Settings
+training:
+  # Optimizer
+  optimizer:
+    type: adam_8bit  # adam, adam_8bit, adamw, sgd
+    lr: 1.0e-4
+    weight_decay: 0.01
+    betas: [0.9, 0.999]
+    eps: 1.0e-8
+
+  # Learning rate scheduler
+  scheduler:
+    type: cosine  # cosine, step, exponential, plateau
+    warmup_steps: 1000
+    num_cycles: 0.5
+    min_lr: 1.0e-6
+
+  # Training parameters
+  epochs: 100
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  max_grad_norm: 1.0
+
+  # Mixed precision
+  use_amp: true
+  amp_opt_level: O2
+
+  # Checkpointing
+  save_every_n_epochs: 5
+  save_best_only: true
+  metric_for_best: val_accuracy
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 10
+    min_delta: 0.001
+
+  # Logging
+  log_every_n_steps: 100
+  log_dir: ./logs/training
+
+# Data Configuration
+data:
+  # Paths
+  train_data: ./data/processed/train
+  val_data: ./data/processed/val
+  test_data: ./data/processed/test
+
+  # Data loading
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+
+  # Augmentation
+  augmentation:
+    enabled: true
+    methods:
+      - time_shift:
+          max_shift: 50  # samples
+      - amplitude_scale:
+          scale_range: [0.8, 1.2]
+      - gaussian_noise:
+          std: 0.01
+      - channel_dropout:
+          dropout_prob: 0.1
+
+  # Preprocessing
+  preprocessing:
+    normalize: true
+    standardize: true
+    remove_baseline: true
+
+# Loss Functions
+loss:
+  seizure_detection:
+    type: focal_loss  # focal_loss, cross_entropy
+    alpha: 0.25
+    gamma: 2.0
+    class_weights: [1.0, 2.0, 3.0]  # Normal, Pre-ictal, Ictal
+
+  sleep_classification:
+    type: cross_entropy
+    label_smoothing: 0.1
+
+  multimodal_fusion:
+    diagnosis_weight: 1.0
+    severity_weight: 0.5
+    urgency_weight: 0.3
+
+# Metrics
+metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1_score
+  - auc_roc
+  - confusion_matrix
+
+# Regularization
+regularization:
+  dropout: 0.5
+  weight_decay: 0.01
+  label_smoothing: 0.1
+
+  # Gradient checkpointing
+  gradient_checkpointing: true
+
+  # Stochastic depth
+  stochastic_depth:
+    enabled: false
+    drop_rate: 0.1
+
+# Distributed Training (Optional)
+distributed:
+  enabled: false
+  backend: nccl
+  world_size: 1
+  rank: 0
+
+# Experiment Tracking
+experiment:
+  name: clinical_ai_v1
+  tags: [eeg, seizure_detection, healthcare]
+  notes: "CNN-LSTM model for seizure detection with 98.75% target accuracy"
+
+  # Weights & Biases
+  wandb:
+    enabled: false
+    project: clinical-ai-copilot
+    entity: your-org
+
+  # TensorBoard
+  tensorboard:
+    enabled: true
+    log_dir: ./logs/tensorboard
+
+# Reproducibility
+seed: 42
+deterministic: false
+benchmark: true
+
+# Debugging
+debug:
+  enabled: false
+  detect_anomaly: false
+  profile: false
+  overfit_batches: 0  # 0 for normal, >0 for overfitting test
+
+# Hardware Optimization
+hardware:
+  # RTX 3060 12GB optimizations
+  use_channels_last: true
+  compile_model: false  # PyTorch 2.0 compile
+  cudnn_benchmark: true
+
+  # Memory optimization
+  max_split_size_mb: 512
+  empty_cache_every_n_steps: 100

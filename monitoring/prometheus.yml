@@ -1,0 +1,71 @@
+# Prometheus Configuration for Clinical AI Copilot
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'clinical-ai-prod'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+
+# Load rules
+rule_files:
+  - 'alert_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Clinical AI API
+  - job_name: 'clinical-ai-api'
+    static_configs:
+      - targets: ['clinical-ai:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # PostgreSQL
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: '/metrics'
+
+  # Neo4j
+  - job_name: 'neo4j'
+    static_configs:
+      - targets: ['neo4j:7474']
+    metrics_path: '/metrics'
+
+  # Qdrant
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    metrics_path: '/metrics'
+
+  # Kafka
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Node Exporter (system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+
+  # cAdvisor (container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['localhost:8080']
+
+  # NVIDIA GPU metrics
+  - job_name: 'nvidia-gpu'
+    static_configs:
+      - targets: ['localhost:9445']

@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "title": "Clinical AI Copilot - System Overview",
+    "tags": ["clinical-ai", "eeg", "healthcare"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+      },
+      {
+        "id": 2,
+        "title": "Model Inference Latency (95th percentile)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(model_inference_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8}
+      },
+      {
+        "id": 3,
+        "title": "GPU Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes * 100",
+            "legendFormat": "GPU {{gpu}}"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+      },
+      {
+        "id": 4,
+        "title": "Seizure Detection Accuracy",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "seizure_detection_accuracy"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4}
+      },
+      {
+        "id": 5,
+        "title": "Critical Alerts (Last Hour)",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "sum(increase(clinical_alerts_total{severity=\"CRITICAL\"}[1h]))"
+          }
+        ],
+        "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4}
+      },
+      {
+        "id": 6,
+        "title": "Patients Analyzed (Today)",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "count(count by (patient_id) (patient_analyses_total))"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 12, "w": 6, "h": 4}
+      },
+      {
+        "id": 7,
+        "title": "System Health",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "up",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 16, "w": 24, "h": 8}
+      }
+    ],
+    "refresh": "5s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}
