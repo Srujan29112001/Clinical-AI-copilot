@@ -1,0 +1,164 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# PyTorch
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+audit_*.log
+
+# Data
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.edf
+*.raw
+*.dat
+
+# Models
+models/*.pth
+models/*.pt
+models/*.ckpt
+models/cache/
+*.h5
+*.pb
+*.onnx
+
+# Encrypted data
+encrypted-data/
+/mnt/encrypted/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgresql-data/
+neo4j-data/
+
+# Docker
+.docker/
+*.tar
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Documentation
+site/
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Secrets
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+
+# Backups
+*.bak
+*.backup
+backups/
+
+# Large files
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+
+# Monitoring
+prometheus-data/
+grafana-data/
+
+# Application specific
+test_logs/
+*.cache
+cache/
+
+# Medical data (HIPAA protected)
+patients/
+phi/
+medical_records/
+eeg_recordings/
+
+# Kubernetes
+*.kubeconfig
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# CI/CD
+.github/workflows/*.log
