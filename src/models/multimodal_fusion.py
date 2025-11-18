@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from typing import Optional, Dict
 from dataclasses import dataclass
+from .mamba2 import Mamba2
 
 
 @dataclass
@@ -59,39 +60,7 @@ class CrossModalAttention(nn.Module):
         return output
 
 
-class SimplifiedMamba2(nn.Module):
-    """
-    Simplified Mamba2 (State Space Model) for long-context processing
-    Full implementation would require the mamba-ssm package
-    """
-
-    def __init__(self, d_model: int, d_state: int = 64):
-        super().__init__()
-        self.d_model = d_model
-        self.d_state = d_state
-
-        # Simplified SSM using LSTM as placeholder
-        # In production, use actual Mamba2 implementation
-        self.ssm = nn.LSTM(
-            input_size=d_model,
-            hidden_size=d_model,
-            num_layers=2,
-            batch_first=True,
-            bidirectional=False
-        )
-
-        self.norm = nn.LayerNorm(d_model)
-
-    def forward(self, x):
-        """
-        Args:
-            x: Input tensor (batch, seq_len, d_model)
-
-        Returns:
-            Processed tensor
-        """
-        out, _ = self.ssm(x)
-        return self.norm(out + x)
+# Mamba2 is now imported from mamba2.py
 
 
 class MultimodalClinicalFusion(nn.Module):
@@ -140,10 +109,14 @@ class MultimodalClinicalFusion(nn.Module):
             ) for _ in range(self.config.num_cross_attention_layers)
         ])
 
-        # Mamba2 for long-context processing
-        self.mamba = SimplifiedMamba2(
+        # Mamba2 for long-context processing (Real implementation)
+        self.mamba = Mamba2(
             d_model=self.config.hidden_dim,
-            d_state=self.config.mamba_d_state
+            d_state=self.config.mamba_d_state,
+            d_conv=self.config.mamba_d_conv,
+            expand=self.config.mamba_expand,
+            num_layers=4,
+            dropout=self.config.dropout
         )
 
         # Prediction heads

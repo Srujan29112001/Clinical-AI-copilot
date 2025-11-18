@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, status
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Request, status, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,6 +20,8 @@ import torch
 import numpy as np
 from datetime import datetime
 import logging
+import json as json_lib
+import asyncio
 
 from src.signal_processing.eeg_processor import EEGProcessingPipeline
 from src.models.cnn_lstm import HybridCNNLSTM, SeizureDetectionConfig
@@ -428,6 +430,258 @@ async def general_exception_handler(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal server error"}
     )
+
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    """Manage WebSocket connections for real-time EEG streaming"""
+
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+        self.patient_buffers: Dict[str, List[np.ndarray]] = {}
+
+    async def connect(self, websocket: WebSocket, patient_id: str):
+        """Accept and register new WebSocket connection"""
+        await websocket.accept()
+        self.active_connections[patient_id] = websocket
+        self.patient_buffers[patient_id] = []
+        logger.info(f"WebSocket connected for patient {patient_id}")
+
+    def disconnect(self, patient_id: str):
+        """Remove WebSocket connection"""
+        if patient_id in self.active_connections:
+            del self.active_connections[patient_id]
+        if patient_id in self.patient_buffers:
+            del self.patient_buffers[patient_id]
+        logger.info(f"WebSocket disconnected for patient {patient_id}")
+
+    async def send_message(self, patient_id: str, message: Dict):
+        """Send message to specific patient connection"""
+        if patient_id in self.active_connections:
+            await self.active_connections[patient_id].send_json(message)
+
+    def add_to_buffer(self, patient_id: str, data: np.ndarray):
+        """Add EEG data to patient buffer"""
+        if patient_id not in self.patient_buffers:
+            self.patient_buffers[patient_id] = []
+        self.patient_buffers[patient_id].append(data)
+
+    def get_buffer(self, patient_id: str, clear: bool = True) -> Optional[np.ndarray]:
+        """Get buffered data for patient"""
+        if patient_id in self.patient_buffers and self.patient_buffers[patient_id]:
+            buffer = np.concatenate(self.patient_buffers[patient_id], axis=-1)
+            if clear:
+                self.patient_buffers[patient_id] = []
+            return buffer
+        return None
+
+
+manager = ConnectionManager()
+
+
+@app.websocket("/ws/eeg/stream/{patient_id}")
+async def websocket_eeg_stream(websocket: WebSocket, patient_id: str):
+    """
+    WebSocket endpoint for real-time EEG streaming and analysis
+
+    Protocol:
+    1. Client sends authentication token
+    2. Client streams EEG chunks: {"channels": 16, "samples": 256, "data": [...]}
+    3. Server processes in real-time and sends back:
+       - Features: {"psd": {...}, "entropy": {...}}
+       - Alerts: {"type": "seizure_detected", "probability": 0.95}
+       - Status: {"processed_chunks": 10, "total_time": 2.5}
+    """
+    await manager.connect(websocket, patient_id)
+
+    try:
+        # Initialize models
+        models = get_models()
+
+        # First message should be authentication
+        auth_message = await websocket.receive_json()
+        token = auth_message.get("token")
+
+        if not token or not token.startswith("demo_"):
+            await websocket.send_json({
+                "error": "Authentication failed",
+                "code": 401
+            })
+            await websocket.close()
+            return
+
+        user_id = token.replace("demo_", "")
+
+        # Audit log connection
+        audit_logger.log_access(
+            user_id=user_id,
+            patient_id=patient_id,
+            action="WEBSOCKET_CONNECT",
+            ip_address=websocket.client.host if hasattr(websocket, 'client') else "unknown",
+            resource="EEG_STREAM"
+        )
+
+        # Send ready message
+        await websocket.send_json({
+            "status": "connected",
+            "patient_id": patient_id,
+            "ready": True,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        processed_chunks = 0
+        alert_threshold = 0.8
+
+        while True:
+            # Receive EEG chunk
+            try:
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=30.0)
+            except asyncio.TimeoutError:
+                await websocket.send_json({
+                    "status": "timeout",
+                    "message": "No data received in 30 seconds"
+                })
+                continue
+
+            # Parse EEG data
+            channels = data.get("channels", 16)
+            samples = data.get("samples", 256)
+            eeg_data = np.array(data.get("data"), dtype=np.float32)
+
+            # Reshape to (channels, samples)
+            try:
+                eeg_chunk = eeg_data.reshape(channels, samples)
+            except ValueError:
+                await websocket.send_json({
+                    "error": "Invalid data shape",
+                    "expected": f"({channels}, {samples})",
+                    "received": eeg_data.shape
+                })
+                continue
+
+            # Process chunk
+            try:
+                features, coeffs = models['eeg_processor'].process_chunk(eeg_chunk)
+
+                # Detect anomalies
+                anomalies = models['eeg_processor'].detect_anomalies(features)
+
+                # Add to buffer for seizure detection
+                manager.add_to_buffer(patient_id, eeg_chunk)
+
+                # Run seizure detection every 10 chunks (10 seconds)
+                seizure_probability = 0.0
+                if processed_chunks > 0 and processed_chunks % 10 == 0:
+                    buffer = manager.get_buffer(patient_id, clear=False)
+                    if buffer is not None and buffer.shape[1] >= 2560:  # 10 seconds
+                        # Take last 10 seconds
+                        buffer_10s = buffer[:, -2560:]
+
+                        # Create windows for seizure model
+                        time_windows = 10
+                        seizure_input = []
+                        for i in range(time_windows):
+                            window = buffer_10s[:, i*256:(i+1)*256]
+                            seizure_input.append(window)
+
+                        if len(seizure_input) == time_windows and models['seizure_model'] is not None:
+                            seizure_tensor = torch.tensor(seizure_input, dtype=torch.float32)
+                            seizure_tensor = seizure_tensor.unsqueeze(0)
+
+                            with torch.no_grad():
+                                seizure_output, _ = models['seizure_model'](seizure_tensor)
+                                seizure_probs = torch.softmax(seizure_output, dim=1)
+                                seizure_probability = float(seizure_probs[0][2])
+
+                # Send analysis results
+                response = {
+                    "status": "processed",
+                    "chunk_id": processed_chunks,
+                    "timestamp": datetime.now().isoformat(),
+                    "features": {
+                        "psd": {
+                            band: float(np.mean(features['psd'].get(band, [0])))
+                            for band in ['delta', 'theta', 'alpha', 'beta', 'gamma']
+                        },
+                        "entropy": {
+                            "shannon": float(np.mean(features['entropy'].get('shannon', [0]))),
+                            "sample": float(np.mean(features['entropy'].get('sample', [0])))
+                        },
+                        "hjorth": {
+                            "activity": float(np.mean(features['hjorth'].get('activity', [0]))),
+                            "mobility": float(np.mean(features['hjorth'].get('mobility', [0]))),
+                            "complexity": float(np.mean(features['hjorth'].get('complexity', [0])))
+                        }
+                    },
+                    "anomalies": anomalies,
+                    "seizure_probability": seizure_probability if processed_chunks % 10 == 0 else None
+                }
+
+                await websocket.send_json(response)
+
+                # Send alert if seizure detected
+                if seizure_probability > alert_threshold:
+                    alert = {
+                        "type": "ALERT",
+                        "severity": "CRITICAL",
+                        "message": "Seizure activity detected",
+                        "probability": seizure_probability,
+                        "timestamp": datetime.now().isoformat(),
+                        "action_required": "Immediate medical attention"
+                    }
+                    await websocket.send_json(alert)
+
+                    # Log critical event
+                    audit_logger.log_access(
+                        user_id=user_id,
+                        patient_id=patient_id,
+                        action="SEIZURE_ALERT",
+                        ip_address=websocket.client.host if hasattr(websocket, 'client') else "unknown",
+                        resource="EEG_STREAM",
+                        additional_data={"probability": seizure_probability}
+                    )
+
+                processed_chunks += 1
+
+            except Exception as e:
+                logger.error(f"Error processing chunk: {e}", exc_info=True)
+                await websocket.send_json({
+                    "error": "Processing error",
+                    "message": str(e)
+                })
+
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for patient {patient_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+    finally:
+        manager.disconnect(patient_id)
+
+        # Audit log disconnection
+        try:
+            audit_logger.log_access(
+                user_id=user_id if 'user_id' in locals() else "unknown",
+                patient_id=patient_id,
+                action="WEBSOCKET_DISCONNECT",
+                ip_address=websocket.client.host if hasattr(websocket, 'client') else "unknown",
+                resource="EEG_STREAM"
+            )
+        except:
+            pass
+
+
+@app.get("/ws/eeg/status/{patient_id}")
+async def websocket_status(patient_id: str, user_id: str = Depends(verify_token)):
+    """Get WebSocket connection status for a patient"""
+    is_connected = patient_id in manager.active_connections
+    buffer_size = len(manager.patient_buffers.get(patient_id, []))
+
+    return {
+        "patient_id": patient_id,
+        "connected": is_connected,
+        "buffer_chunks": buffer_size,
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 def main():
