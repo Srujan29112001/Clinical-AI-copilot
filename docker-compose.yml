@@ -190,10 +190,11 @@ volumes:
     driver: local
   encrypted-storage:
     driver: local
-    driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: '/mnt/encrypted/clinical-data'
+    # For production, configure this to use encrypted filesystem
+    # driver_opts:
+    #   type: 'none'
+    #   o: 'bind'
+    #   device: '/mnt/encrypted/clinical-data'
 
 networks:
   clinical-network:
