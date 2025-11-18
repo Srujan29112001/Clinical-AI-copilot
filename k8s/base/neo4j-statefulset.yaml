@@ -1,0 +1,162 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j-service
+  namespace: clinical-ai
+  labels:
+    app: neo4j
+spec:
+  ports:
+    - port: 7474
+      targetPort: 7474
+      name: http
+    - port: 7687
+      targetPort: 7687
+      name: bolt
+    - port: 2004
+      targetPort: 2004
+      name: metrics
+  clusterIP: None
+  selector:
+    app: neo4j
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: clinical-ai
+  labels:
+    app: neo4j
+spec:
+  serviceName: neo4j-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2004"
+    spec:
+      securityContext:
+        fsGroup: 7474
+        runAsUser: 7474
+        runAsNonRoot: true
+
+      containers:
+        - name: neo4j
+          image: neo4j:5.13-enterprise  # Use community edition if no license
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 7474
+              name: http
+            - containerPort: 7687
+              name: bolt
+            - containerPort: 2004
+              name: metrics
+
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: NEO4J_USER
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clinical-ai-secrets
+                  key: NEO4J_PASSWORD
+
+            # HIPAA: Enable SSL/TLS
+            - name: NEO4J_dbms_ssl_policy_bolt_enabled
+              value: "true"
+            - name: NEO4J_dbms_ssl_policy_bolt_base__directory
+              value: "/ssl"
+            - name: NEO4J_dbms_ssl_policy_https_enabled
+              value: "true"
+
+            # Memory settings
+            - name: NEO4J_dbms_memory_heap_initial__size
+              value: "2G"
+            - name: NEO4J_dbms_memory_heap_max__size
+              value: "4G"
+            - name: NEO4J_dbms_memory_pagecache_size
+              value: "4G"
+
+            # Performance
+            - name: NEO4J_dbms_transaction_timeout
+              value: "60s"
+            - name: NEO4J_dbms_query_cache_size
+              value: "1000"
+
+            # Monitoring
+            - name: NEO4J_metrics_enabled
+              value: "true"
+            - name: NEO4J_metrics_prometheus_enabled
+              value: "true"
+            - name: NEO4J_metrics_prometheus_endpoint
+              value: "0.0.0.0:2004"
+
+            # Audit logging (HIPAA)
+            - name: NEO4J_dbms_logs_query_enabled
+              value: "true"
+            - name: NEO4J_dbms_logs_security_level
+              value: "INFO"
+
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+            - name: neo4j-logs
+              mountPath: /logs
+            - name: ssl-certs
+              mountPath: /ssl
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "8Gi"
+            limits:
+              cpu: "4000m"
+              memory: "12Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7474
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7474
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+
+      volumes:
+        - name: ssl-certs
+          secret:
+            secretName: clinical-ai-tls
+        - name: neo4j-logs
+          emptyDir: {}
+
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: encrypted-ssd
+        resources:
+          requests:
+            storage: 50Gi
