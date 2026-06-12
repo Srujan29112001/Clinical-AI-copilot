@@ -92,7 +92,9 @@ export function Graph3D({
 
     // ── nodes (instanced spheres) ──
     const geo = new THREE.SphereGeometry(1, 16, 16);
-    const mat = new THREE.MeshBasicMaterial({ vertexColors: true });  // unlit → bright, light-independent
+    // NOTE: per-instance colours come from setColorAt() → instanceColor buffer.
+    // Do NOT set vertexColors:true (that reads a non-existent geometry colour attr → black).
+    const mat = new THREE.MeshBasicMaterial();  // unlit white, multiplied by instanceColor
     const mesh = new THREE.InstancedMesh(geo, mat, N);
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
@@ -105,6 +107,8 @@ export function Graph3D({
       color.set(GROUP_COLORS[graph.nodes[i].group] || "#8ea0c4");
       mesh.setColorAt(i, color);
     }
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     scene.add(mesh);
 
     // ── edges ──
