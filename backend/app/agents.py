@@ -28,8 +28,19 @@ from .models_np import (
     SpikingNeuralNetwork, SelectiveSSM, CNNLSTMEncoder, TextEncoder,
     MultimodalFusion, event_evidence, SEVERITY, URGENCY,
 )
-from .llm import get_llm
+from .llm import get_llm, MockLLM
 from .schemas import AgentEvent
+
+
+async def _llm_complete(role: str, override: dict, system: str, prompt: str) -> tuple[str, str, str]:
+    """Run an LLM agent, falling back to deterministic reasoning on ANY provider
+    error (bad/expired key, rate limit, network) so the pipeline never breaks."""
+    llm, cfg = get_llm(role, override)
+    try:
+        return await llm.complete(system, prompt), cfg.provider, cfg.model
+    except Exception:  # noqa: BLE001 — resilience: degrade gracefully
+        text = await MockLLM(role).complete(system, prompt)
+        return text, f"{cfg.provider}-fallback", cfg.model
 
 AGENTS = [
     {"id": "signal", "name": "Signal Analyst", "role": "qEEG feature extraction (50+ params) + CNN-LSTM embedding", "icon": "activity", "model": "CNN-LSTM"},
@@ -152,12 +163,11 @@ async def run_pipeline(ctx: RunContext) -> AsyncIterator[str]:
     urgency = ("Emergent" if sz_prob >= 0.8 or det["primary_finding"] == "burst_suppression"
                else "Urgent" if sz_prob >= 0.45 or det["primary_finding"] in ("encephalopathy", "focal")
                else "Routine")
-    llm, cfg = get_llm("triage", ctx.llm_override)
-    triage_text = await llm.complete(_SYS["triage"],
+    triage_text, tri_provider, tri_model = await _llm_complete("triage", ctx.llm_override, _SYS["triage"],
         f"seizure_probability: {sz_prob}\nprimary_finding: {det['primary_finding']}\n"
         f"symptoms: {symptoms}\ntrend: {temporal['trend']}\n"
         "Give a one-paragraph triage decision with an explicit URGENCY level.")
-    result["triage"] = {"urgency": urgency, "narrative": triage_text, "provider": cfg.provider, "model": cfg.model}
+    result["triage"] = {"urgency": urgency, "narrative": triage_text, "provider": tri_provider, "model": tri_model}
     yield _ev(type="stage", agent="triage", status="done", message=triage_text, data={"urgency": urgency})
 
     # 6 ── Knowledge Retriever (GraphRAG + literature) -----------------------
@@ -202,8 +212,7 @@ async def run_pipeline(ctx: RunContext) -> AsyncIterator[str]:
     # 8 ── Diagnostician -----------------------------------------------------
     async for e in _stage("diagnostician", "Reasoning over fused multimodal evidence"):
         yield e
-    llm, cfg = get_llm("diagnostician", ctx.llm_override)
-    dx_text = await llm.complete(_SYS["diagnostician"],
+    dx_text, dx_provider, dx_model = await _llm_complete("diagnostician", ctx.llm_override, _SYS["diagnostician"],
         f"top_diagnosis: {top.get('condition','unknown')}\nicd10: {top.get('icd10','')}\n"
         f"primary_finding: {det['primary_finding']}\nseizure_type: {det['seizure_type']}\n"
         f"eeg_markers: {', '.join(top.get('eeg_markers', []))}\nsymptoms: {symptoms}\n"
@@ -212,9 +221,9 @@ async def run_pipeline(ctx: RunContext) -> AsyncIterator[str]:
     result["primary_diagnosis"] = {
         "condition": top.get("condition", "Undetermined"), "icd10": top.get("icd10"),
         "confidence": fusion["confidence"], "reasoning": dx_text,
-        "provider": cfg.provider, "model": cfg.model,
+        "provider": dx_provider, "model": dx_model,
     }
-    result["models_used"]["reasoning"] = f"{cfg.provider}:{cfg.model}"
+    result["models_used"]["reasoning"] = f"{dx_provider}:{dx_model}"
     yield _ev(type="stage", agent="diagnostician", status="done", message=dx_text,
               data={"condition": top.get("condition"), "confidence": fusion["confidence"]})
 
@@ -238,8 +247,7 @@ async def run_pipeline(ctx: RunContext) -> AsyncIterator[str]:
     # 11 ── Reporter ---------------------------------------------------------
     async for e in _stage("reporter", "Synthesising the clinical report"):
         yield e
-    llm, cfg = get_llm("reporter", ctx.llm_override)
-    rep_text = await llm.complete(_SYS["reporter"],
+    rep_text, _, _ = await _llm_complete("reporter", ctx.llm_override, _SYS["reporter"],
         f"top_diagnosis: {top.get('condition','unknown')}\nseverity: {fusion['severity']}\n"
         f"urgency: {urgency}\nseizure_probability: {sz_prob}\nprimary_finding: {det['primary_finding']}\n"
         f"trend: {temporal['trend']}\nuncertainty: {fusion['uncertainty']}\n"
@@ -328,8 +336,16 @@ async def chat_stream(messages: list[dict], context: dict, llm_override: dict) -
         lines.append(f"patient_symptoms: {context['patient'].get('symptoms')}")
     prompt = "\n".join(lines) + f"\nquestion: {last}"
     yield _ev(type="stage", agent="chat", status="running")
-    async for tok in llm.stream(_CHAT_SYS, prompt):
-        yield _ev(type="token", message=tok)
+    try:
+        emitted = False
+        async for tok in llm.stream(_CHAT_SYS, prompt):
+            emitted = True
+            yield _ev(type="token", message=tok)
+        if not emitted:  # provider returned nothing → fall back
+            raise RuntimeError("empty stream")
+    except Exception:  # noqa: BLE001 — degrade to deterministic chat on any error
+        async for tok in MockLLM("chat").stream(_CHAT_SYS, prompt):
+            yield _ev(type="token", message=tok)
     yield _ev(type="done")
 
 
