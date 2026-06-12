@@ -4,18 +4,36 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-149eca.svg)](https://react.dev/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com/)
-[![Hybrid LLM](https://img.shields.io/badge/inference-local%20GPU%20%2B%20API-22d3ee.svg)](#-hybrid-inference-local-gpu--api)
+[![Hybrid LLM](https://img.shields.io/badge/inference-local%20GPU%20%2B%20API-ff3b4e.svg)](#-hybrid-inference-local-gpu--api)
+[![Live Demo](https://img.shields.io/badge/%F0%9F%94%B4%20live%20demo-clinical--ai--copilot.vercel.app-ff3b4e.svg)](https://clinical-ai-copilot.vercel.app)
 
 A **deployable, multi-agent clinical decision-support web app**. Upload an EEG /
-clinical dataset and watch **seven specialized AI agents** triage, analyze the
+clinical dataset and watch **eleven specialized AI agents** triage, analyze the
 signal, retrieve evidence, diagnose, check drug safety and write a report — in
 real time — running on **your local GPU** *or* **any API provider**.
 
-> **v2.0 — full rebuild.** The original repo was a backend-only Python research
-> stack with no UI and no way to test it without a 12 GB GPU and a Docker fleet.
-> v2 turns it into a modern full-stack product (Next.js + FastAPI) you can run in
-> one command, deploy to the web, and use with a hybrid local/cloud inference
-> layer — while keeping the deep-learning research engine intact under `src/`.
+---
+
+## 🔴 Live demo — try it now (no install, free)
+
+| | |
+|---|---|
+| 🌐 **Web app** | **https://clinical-ai-copilot.vercel.app** |
+| ⚙️ **Backend API** | https://srujan29-clinical-ai-backend.hf.space — [health](https://srujan29-clinical-ai-backend.hf.space/health) · [API docs](https://srujan29-clinical-ai-backend.hf.space/api/docs) |
+
+**Test it in 60 seconds:**
+1. Open the **[live app](https://clinical-ai-copilot.vercel.app)** → click **Open the Studio**.
+2. Pick a built-in dataset (e.g. *Ictal seizure episode*) **or** drag in your own CSV. Tip: the Studio has **Download test datasets** chips — grab one and re-upload it to test the full upload path.
+3. The patient context is pre-filled for samples → click **Run multi-agent analysis**.
+4. Watch the 11 agents stream live, then read the report: diagnosis + confidence, EEG waveform/PSD/band-power charts, **SNN spike raster**, **7 detectors**, **Mamba2 trend**, **multimodal fusion + uncertainty**, treatments and drug-safety.
+5. Open **AI Chat** to ask questions about the result, and **Knowledge Graph** for the interactive **3D** ICD-10 / SNOMED-CT / RxNorm map.
+
+> The public demo runs **free** with built-in deterministic reasoning (no API key). It's **decision-support research software — not for clinical use.**
+
+> **v3 — full rebuild.** The original repo was a backend-only Python research stack
+> with no UI. This version is a modern full-stack product (Next.js + FastAPI) you can
+> open in a browser, deploy free, and run on hybrid local/cloud inference — while
+> keeping the deep-learning research engine intact under `src/`.
 
 ---
 
@@ -30,20 +48,60 @@ real time — running on **your local GPU** *or* **any API provider**.
 - **Upload your own data** — `EDF · CSV · TSV · NPY · JSON`, or download the **6 built-in test datasets** (see below).
 - **AI chat copilot** grounded in the latest analysis · **zero-key offline demo** so the public Vercel link always works.
 
-## 🧪 Test datasets
+## 🧪 How to test it (datasets & formats)
 
-Six realistic 16-channel (10-20 montage) EEG recordings ship in [`data/samples/`](data/samples/) and are downloadable from the Studio:
+### 1) Built-in datasets — the easiest way
+Six realistic **16-channel (10-20 montage)** EEG recordings ship in [`data/samples/`](data/samples/) and are **downloadable right inside the Studio** (the *Download test datasets* chips). Pick one as a sample, or download + re-upload it to exercise the full upload path:
 
 | File | Condition | Expected result |
 |---|---|---|
 | `eeg_normal_awake.csv` | Healthy, eyes-closed alpha | Routine · PDR present |
 | `eeg_seizure_generalized.csv` | 3 Hz spike-wave + HF recruitment | **Emergent** · generalized seizure |
 | `eeg_seizure_focal_left_temporal.csv` | Left temporal discharge | Urgent · focal seizure, **left** lateralization |
-| `eeg_sleep_n2.csv` | N2 sleep with spindles | Routine · sleep staging |
-| `eeg_encephalopathy_diffuse_slowing.csv` | Diffuse delta (high DAR) | encephalopathy |
+| `eeg_sleep_n2.csv` | N2 sleep with spindles | Routine · sleep staging (N2) |
+| `eeg_encephalopathy_diffuse_slowing.csv` | Diffuse delta (high DAR) | Encephalopathy / diffuse slowing |
 | `eeg_burst_suppression.csv` | Burst-suppression | **Emergent** · high suppression ratio |
 
-Regenerate / extend them with `python scripts/generate_test_datasets.py`.
+Generate more (or your own variations): `python scripts/generate_test_datasets.py`.
+
+### 2) Upload your own data
+The live web app accepts **`.csv` · `.tsv` · `.npy` · `.json`** — raw EEG shaped as
+**samples × channels** (or channels × samples; it auto-orients). A header row of
+channel names is optional. Default assumed sampling rate is 256 Hz.
+
+- **`.csv` / `.tsv`** — numeric rows of EEG amplitudes (µV). *Best format for the live demo.*
+- **`.npy`** — a NumPy array `(channels, samples)` or `(samples, channels)`.
+- **`.json`** — `{"data": [[...]], "fs": 256}` or a bare 2-D array.
+- **`.edf` / `.bdf`** — supported only when self-hosting with `pyedflib` enabled
+  (it's commented out in [`backend/requirements.txt`](backend/requirements.txt) to keep
+  the free demo light). On the public demo, EDF falls back to a synthetic signal with a
+  "could not parse" note — so **convert EDF → CSV first** (snippet below).
+
+> If a file can't be parsed, the app never errors — it analyses a synthetic signal and
+> flags it in the Safety review, so the demo always completes.
+
+### 3) Public EEG datasets to try
+Great real-world data to download and test (convert EDF → CSV for the live demo):
+
+| Dataset | Content | Format | Link |
+|---|---|---|---|
+| **CHB-MIT Scalp EEG** | Pediatric seizures (annotated) | EDF | https://physionet.org/content/chbmit/ |
+| **Siena Scalp EEG** | Adult epilepsy | EDF | https://physionet.org/content/siena-scalp-eeg/ |
+| **Sleep-EDF Expanded** | Sleep staging (PSG) | EDF | https://physionet.org/content/sleep-edfx/ |
+| **Bonn University EEG** | Seizure vs normal | TXT (1 column → works as CSV) | https://www.upf.edu/web/ntsa/downloads |
+| **TUH EEG Corpus** | Largest clinical EEG set | EDF (free registration) | https://isip.piconepress.com/projects/tuh_eeg/ |
+| **Epileptic Seizure Recognition** | Pre-chunked EEG segments | CSV | https://www.kaggle.com/datasets/harunshimanto/epileptic-seizure-recognition |
+
+**Convert an EDF file to a CSV the app accepts** (run locally, needs `pip install mne`):
+```python
+import mne, numpy as np
+raw = mne.io.read_raw_edf("chb01_03.edf", preload=True)
+raw.pick("eeg").resample(256)                       # 256 Hz, EEG channels only
+data = raw.get_data().T[: 256 * 12]                 # ~12 s, shape (samples, channels)
+np.savetxt("my_eeg.csv", data * 1e6, delimiter=",", # to microvolts
+           header=",".join(raw.ch_names), comments="")
+```
+Then drag `my_eeg.csv` into the Studio.
 
 ---
 
@@ -180,20 +238,26 @@ Clinical-AI-copilot/
 │   ├── app/                  #   landing · studio · chat · graph · architecture
 │   ├── components/           #   site · backgrounds · landing · studio · graph · ui
 │   └── lib/                  #   api (SSE + upload) · simulate (offline) · agents · store
-├── backend/                  # FastAPI multi-agent service  ← deploy to Render/Fly
+├── backend/                  # FastAPI multi-agent service  ← deploy to HF Spaces/Render
 │   └── app/
 │       ├── main.py           #   API routes + SSE
-│       ├── agents.py         #   7-agent orchestrator
-│       ├── llm.py            #   hybrid local/API provider layer
-│       ├── eeg.py            #   NumPy/SciPy signal pipeline
-│       ├── knowledge.py      #   in-memory GraphRAG + drug interactions
+│       ├── agents.py         #   11-agent orchestrator (with graceful LLM fallback)
+│       ├── features.py       #   50+ qEEG parameters (spectral/entropy/connectivity/…)
+│       ├── models_np.py      #   NumPy ports: SNN · Mamba2 SSM · CNN-LSTM · fusion
+│       ├── detectors.py      #   7 detection use-cases
+│       ├── llm.py            #   hybrid local/API provider layer + model registry
+│       ├── eeg.py            #   signal loading + preprocessing (CSV/NPY/JSON/EDF)
+│       ├── knowledge.py      #   in-memory GraphRAG + literature + drug interactions
 │       └── samples.py        #   synthetic ictal/normal/sleep datasets
-├── src/                      # Deep-learning research engine (PyTorch) — unchanged
+├── data/samples/             # 6 downloadable test EEG datasets (CSV)
 ├── data/medical_ontology/    # ICD-10 · SNOMED-CT · RxNorm
+├── src/                      # Deep-learning research engine (PyTorch) — unchanged
+├── deploy/huggingface/       # ready-to-use Hugging Face Space (Dockerfile + README)
+├── scripts/generate_test_datasets.py
 ├── docs/RESEARCH_DESIGN.md   # original architecture-parameter research
-├── docker-compose.app.yml    # v2 app stack (frontend + backend)
-├── docker-compose.yml        # original full research infra (Neo4j/Qdrant/Kafka/…)
-└── render.yaml               # one-click backend deploy
+├── DEPLOYMENT.md             # step-by-step Vercel + HF Spaces guide
+├── docker-compose.app.yml    # full app stack (frontend + backend)
+└── render.yaml               # one-click backend deploy (alternative host)
 ```
 
 ---
