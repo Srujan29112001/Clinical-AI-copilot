@@ -2,7 +2,7 @@
 import type { BandPowers } from "@/lib/types";
 
 const BAND_COLORS: Record<string, string> = {
-  delta: "#6366f1", theta: "#22d3ee", alpha: "#2dd4bf", beta: "#f59e0b", gamma: "#fb7185",
+  delta: "#e11d48", theta: "#ff3b4e", alpha: "#ff7a59", beta: "#f59e0b", gamma: "#fbbf24",
 };
 
 export function WaveformChart({ data }: { data: Array<{ t: number; v: number }> }) {

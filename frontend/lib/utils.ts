@@ -16,14 +16,14 @@ export const SEVERITY_BY_INTERACTION: Record<string, string> = {
   contraindicated: "text-red-300 bg-red-500/10 border-red-500/30",
   major: "text-rose-300 bg-rose-500/10 border-rose-500/30",
   moderate: "text-amber-300 bg-amber-500/10 border-amber-500/30",
-  minor: "text-sky-300 bg-sky-500/10 border-sky-500/30",
+  minor: "text-stone-300 bg-stone-500/10 border-stone-500/30",
 };
 
 export const GROUP_COLORS: Record<string, string> = {
-  disease: "#22d3ee",
-  marker: "#f59e0b",
-  concept: "#a78bfa",
-  drug: "#34d399",
+  disease: "#ff3b4e", // red (primary)
+  marker: "#f59e0b",  // amber
+  concept: "#ff5d8f", // pink-red
+  drug: "#34d399",    // green (kept distinct for legend readability)
 };
 
 export function sleep(ms: number) {

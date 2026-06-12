@@ -38,7 +38,7 @@ export function Graph3D({
     mount.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-    const pt = new THREE.PointLight(0x22d3ee, 1.2); pt.position.set(200, 200, 300); scene.add(pt);
+    const pt = new THREE.PointLight(0xff3b4e, 1.2); pt.position.set(200, 200, 300); scene.add(pt);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -118,7 +118,7 @@ export function Graph3D({
       linePos.set([pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2], pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]], k * 6);
     });
     lineGeo.setAttribute("position", new THREE.BufferAttribute(linePos, 3));
-    const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x2a3a5c, transparent: true, opacity: 0.35 }));
+    const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x5a2a32, transparent: true, opacity: 0.35 }));
     scene.add(lines);
 
     // ── label sprite (for hover) ──

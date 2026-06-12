@@ -5,7 +5,7 @@ import type { AnalysisResult, Detection, Neuromorphic, Temporal, Fusion, QEEG } 
 import { cn } from "@/lib/utils";
 
 const BAND_COLORS: Record<string, string> = {
-  delta: "#6366f1", theta: "#22d3ee", alpha: "#2dd4bf", beta: "#f59e0b", gamma: "#fb7185",
+  delta: "#e11d48", theta: "#ff3b4e", alpha: "#ff7a59", beta: "#f59e0b", gamma: "#fbbf24",
 };
 
 /* ── Models used strip ── */
@@ -47,7 +47,7 @@ export function SpikeRaster({ neuro }: { neuro: Neuromorphic }) {
               </text>
               {row.map((v, t) => (
                 <rect key={t} x={125 + t * cell} y={i * (cell + 2) + 4} width={cell - 1} height={cell}
-                  rx={1} fill={v ? (i === argmaxRow(neuro.raster) ? "#f59e0b" : "#22d3ee") : "var(--color-panel-2)"}
+                  rx={1} fill={v ? (i === argmaxRow(neuro.raster) ? "#f59e0b" : "#ff3b4e") : "var(--color-panel-2)"}
                   opacity={v ? 0.95 : 0.5} />
               ))}
             </g>
@@ -92,8 +92,8 @@ export function FusionPanel({ fusion }: { fusion: Fusion }) {
     <div className="panel p-5">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><GitMerge className="h-4 w-4 text-[var(--color-violet)]" /> Multimodal fusion (cross-attention)</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Dist title="Severity" dist={fusion.severity_dist} pick={fusion.severity} color="#a78bfa" />
-        <Dist title="Urgency" dist={fusion.urgency_dist} pick={fusion.urgency} color="#22d3ee" />
+        <Dist title="Severity" dist={fusion.severity_dist} pick={fusion.severity} color="#ff5d8f" />
+        <Dist title="Urgency" dist={fusion.urgency_dist} pick={fusion.urgency} color="#ff3b4e" />
       </div>
       <div className="mt-4 grid grid-cols-3 gap-3 text-center">
         <Mini label="Confidence" value={`${Math.round(fusion.confidence * 100)}%`} />
@@ -137,7 +137,7 @@ export function TemporalTrend({ temporal }: { temporal: Temporal }) {
   const max = Math.max(...s, 1), min = Math.min(...s, 0);
   const W = 280, H = 60;
   const pts = s.map((v, i) => `${(i / (s.length - 1)) * W},${H - ((v - min) / (max - min + 1e-9)) * (H - 8) - 4}`).join(" ");
-  const color = temporal.trend === "escalating" ? "#fb7185" : temporal.trend === "resolving" ? "#34d399" : "#22d3ee";
+  const color = temporal.trend === "escalating" ? "#fb7185" : temporal.trend === "resolving" ? "#34d399" : "#ff3b4e";
   return (
     <div className="panel p-5">
       <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold"><Waves className="h-4 w-4 text-[var(--color-teal)]" /> Temporal trend (Mamba2 SSM)</h3>

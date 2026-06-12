@@ -6,21 +6,24 @@
    amber/red clinical-alert accents.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-bg: #05070d;
-  --color-bg-soft: #0a0f1a;
-  --color-panel: #0e1524;
-  --color-panel-2: #131c30;
-  --color-border: #1e2a44;
-  --color-border-soft: #16203a;
+  /* Crimson "ember" dark theme. NOTE: the --color-cyan/teal/violet token names
+     are kept for minimal diff but now hold RED-family values, so every
+     var(--color-cyan) reference across the app renders red. */
+  --color-bg: #0a0406;
+  --color-bg-soft: #110709;
+  --color-panel: #18090d;
+  --color-panel-2: #210e13;
+  --color-border: #3b1c24;
+  --color-border-soft: #2a151b;
 
-  --color-ink: #eaf0ff;
-  --color-muted: #8ea0c4;
-  --color-faint: #5b6b8c;
+  --color-ink: #fdeef0;
+  --color-muted: #cda5ac;
+  --color-faint: #8f6b73;
 
-  --color-cyan: #22d3ee;
-  --color-teal: #2dd4bf;
-  --color-violet: #a78bfa;
-  --color-indigo: #6366f1;
+  --color-cyan: #ff3b4e;    /* primary (red) */
+  --color-teal: #ff7a59;    /* secondary (ember orange) */
+  --color-violet: #ff5d8f;  /* accent (pink-red) */
+  --color-indigo: #e11d48;
   --color-amber: #f59e0b;
   --color-rose: #fb7185;
   --color-red: #ef4444;
@@ -30,7 +33,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --radius-xl: 1.25rem;
-  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.15), 0 18px 60px -20px rgba(34, 211, 238, 0.35);
+  --shadow-glow: 0 0 0 1px rgba(255, 59, 78, 0.15), 0 18px 60px -20px rgba(255, 59, 78, 0.35);
 }
 
 * {
@@ -56,15 +59,15 @@ body::before {
   inset: 0;
   z-index: -2;
   background:
-    radial-gradient(60% 50% at 15% 0%, rgba(34, 211, 238, 0.10), transparent 60%),
-    radial-gradient(55% 50% at 90% 10%, rgba(167, 139, 250, 0.10), transparent 60%),
-    radial-gradient(50% 60% at 50% 100%, rgba(45, 212, 191, 0.06), transparent 60%);
+    radial-gradient(60% 50% at 15% 0%, rgba(255, 59, 78, 0.12), transparent 60%),
+    radial-gradient(55% 50% at 90% 10%, rgba(255, 93, 143, 0.10), transparent 60%),
+    radial-gradient(50% 60% at 50% 100%, rgba(255, 122, 89, 0.07), transparent 60%);
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--color-bg-soft); }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #2a3a5c; }
+::-webkit-scrollbar-thumb:hover { background: #5a2a32; }
 
 /* ── reusable component classes ── */
 @layer components {
@@ -93,9 +96,9 @@ body::before {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
   }
   .btn-primary {
-    color: #04111a;
+    color: #fff;
     background: linear-gradient(135deg, var(--color-cyan), var(--color-teal));
-    box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.6);
+    box-shadow: 0 10px 30px -10px rgba(255, 59, 78, 0.6);
   }
   .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
   .btn-ghost {
@@ -114,8 +117,8 @@ body::before {
 
   .grid-bg {
     background-image:
-      linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+      linear-gradient(rgba(255, 59, 78, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 59, 78, 0.05) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 }

@@ -104,7 +104,7 @@ No backend?  →  the same event shape is generated client-side (offline demo).`
         <div className="panel divide-y divide-[var(--color-border)]">
           {ENDPOINTS.map(([m, path, desc]) => (
             <div key={path} className="flex flex-wrap items-center gap-3 p-3.5">
-              <span className={`w-14 rounded-md px-2 py-0.5 text-center font-mono text-xs ${m === "GET" ? "bg-emerald-500/10 text-emerald-300" : "bg-cyan-500/10 text-cyan-300"}`}>{m}</span>
+              <span className={`w-14 rounded-md px-2 py-0.5 text-center font-mono text-xs ${m === "GET" ? "bg-emerald-500/10 text-emerald-300" : "bg-rose-500/10 text-rose-300"}`}>{m}</span>
               <code className="font-mono text-sm text-[var(--color-ink)]">{path}</code>
               <span className="text-sm text-[var(--color-faint)]">{desc}</span>
             </div>

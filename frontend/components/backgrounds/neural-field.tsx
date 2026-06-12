@@ -62,8 +62,8 @@ export function NeuralField({ density = 64 }: { density?: number }) {
           if (d < LINK) {
             const alpha = (1 - d / LINK) * 0.5;
             const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-            grad.addColorStop(0, `rgba(34,211,238,${alpha})`);
-            grad.addColorStop(1, `rgba(167,139,250,${alpha})`);
+            grad.addColorStop(0, `rgba(255,59,78,${alpha})`);
+            grad.addColorStop(1, `rgba(255,93,143,${alpha})`);
             ctx.strokeStyle = grad;
             ctx.lineWidth = 0.6;
             ctx.beginPath();
@@ -83,9 +83,9 @@ export function NeuralField({ density = 64 }: { density?: number }) {
         const pulse = 0.6 + 0.4 * Math.sin((t + n.x) * 0.02);
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(45,212,191,${0.5 * pulse})`;
+        ctx.fillStyle = `rgba(255,122,89,${0.5 * pulse})`;
         ctx.shadowBlur = 8;
-        ctx.shadowColor = "rgba(34,211,238,0.6)";
+        ctx.shadowColor = "rgba(255,59,78,0.6)";
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -100,7 +100,7 @@ export function NeuralField({ density = 64 }: { density?: number }) {
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = "rgba(34,211,238,0.18)";
+      ctx.strokeStyle = "rgba(255,59,78,0.18)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 

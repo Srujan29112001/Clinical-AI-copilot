@@ -107,7 +107,7 @@ export function ForceGraph({
       for (const e of edges) {
         if (!visible(e.a) || !visible(e.b)) continue;
         const hot = hover === e.a.id || hover === e.b.id;
-        ctx.strokeStyle = hot ? "rgba(34,211,238,0.55)" : "rgba(120,140,180,0.16)";
+        ctx.strokeStyle = hot ? "rgba(255,59,78,0.55)" : "rgba(180,130,140,0.16)";
         ctx.lineWidth = hot ? 1.4 : 0.7;
         ctx.beginPath();
         ctx.moveTo(e.a.x, e.a.y);
