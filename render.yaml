@@ -1,0 +1,18 @@
+# One-click backend deploy on Render (https://render.com).
+# The frontend deploys separately on Vercel (see frontend/vercel.json).
+services:
+  - type: web
+    name: clinical-ai-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CLINICAL_CORS_ORIGINS
+        value: "*"
+      # Add your provider key here to enable real reasoning, e.g.:
+      # - key: CLINICAL_LLM_PROVIDER
+      #   value: groq
+      # - key: CLINICAL_LLM_API_KEY
+      #   sync: false

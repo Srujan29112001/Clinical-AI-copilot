@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Clinical AI Copilot — design tokens
+   Dark "neuro-lab" theme: deep slate canvas, cyan/violet neon,
+   amber/red clinical-alert accents.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-bg: #05070d;
+  --color-bg-soft: #0a0f1a;
+  --color-panel: #0e1524;
+  --color-panel-2: #131c30;
+  --color-border: #1e2a44;
+  --color-border-soft: #16203a;
+
+  --color-ink: #eaf0ff;
+  --color-muted: #8ea0c4;
+  --color-faint: #5b6b8c;
+
+  --color-cyan: #22d3ee;
+  --color-teal: #2dd4bf;
+  --color-violet: #a78bfa;
+  --color-indigo: #6366f1;
+  --color-amber: #f59e0b;
+  --color-rose: #fb7185;
+  --color-red: #ef4444;
+  --color-green: #34d399;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-xl: 1.25rem;
+  --shadow-glow: 0 0 0 1px rgba(34, 211, 238, 0.15), 0 18px 60px -20px rgba(34, 211, 238, 0.35);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Ambient backdrop glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(60% 50% at 15% 0%, rgba(34, 211, 238, 0.10), transparent 60%),
+    radial-gradient(55% 50% at 90% 10%, rgba(167, 139, 250, 0.10), transparent 60%),
+    radial-gradient(50% 60% at 50% 100%, rgba(45, 212, 191, 0.06), transparent 60%);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-bg-soft); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3a5c; }
+
+/* ── reusable component classes ── */
+@layer components {
+  .container-page { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
+
+  .panel {
+    background: linear-gradient(180deg, var(--color-panel), var(--color-bg-soft));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+  }
+
+  .panel-soft {
+    background: var(--color-panel);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 1rem;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--color-muted);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+  }
+  .btn-primary {
+    color: #04111a;
+    background: linear-gradient(135deg, var(--color-cyan), var(--color-teal));
+    box-shadow: 0 10px 30px -10px rgba(34, 211, 238, 0.6);
+  }
+  .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+  .btn-ghost {
+    color: var(--color-ink);
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .btn-ghost:hover { border-color: var(--color-cyan); color: var(--color-cyan); }
+
+  .gradient-text {
+    background: linear-gradient(120deg, #fff 0%, var(--color-cyan) 45%, var(--color-violet) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+}
+
+/* ── animations ── */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+@keyframes dash {
+  to { stroke-dashoffset: -1000; }
+}
+.animate-dash { stroke-dasharray: 6 10; animation: dash 18s linear infinite; }
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float-y 6s ease-in-out infinite; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-panel) 25%, var(--color-panel-2) 37%, var(--color-panel) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}

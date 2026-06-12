@@ -1,0 +1,45 @@
+# ── Clinical AI Copilot v2 — full app stack (frontend + multi-agent backend) ──
+# Run the complete web app locally with one command:
+#   docker compose -f docker-compose.app.yml up --build
+# Then open http://localhost:3000
+#
+# This is the lightweight, GPU-optional stack. For the full research
+# infrastructure (Neo4j, Qdrant, Kafka, Postgres, monitoring) use the original
+# docker-compose.yml instead.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: clinical-ai-backend:2.0.0
+    ports:
+      - "8000:8000"
+    environment:
+      CLINICAL_CORS_ORIGINS: "*"
+      # ── Choose your inference mode (leave unset for zero-key demo) ──
+      # Local GPU via Ollama running on the host:
+      # CLINICAL_LLM_PROVIDER: ollama
+      # CLINICAL_LLM_BASE_URL: http://host.docker.internal:11434/v1
+      # CLINICAL_LLM_MODEL: llama3.1:8b
+      # Or a hosted provider:
+      # CLINICAL_LLM_PROVIDER: anthropic
+      # CLINICAL_LLM_API_KEY: ${ANTHROPIC_API_KEY}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    image: clinical-ai-frontend:2.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend

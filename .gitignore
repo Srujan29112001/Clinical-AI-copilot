@@ -10,17 +10,19 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
 wheels/
 share/python-wheels/
+# (note: lib/ and lib64/ below are anchored to repo root so they don't
+#  match frontend/lib/ — the Next.js source directory)
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+/lib/
+/lib64/
 pip-log.txt
 pip-delete-this-directory.txt
 
