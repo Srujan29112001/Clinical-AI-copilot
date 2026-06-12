@@ -183,27 +183,37 @@ def knowledge_graph() -> dict[str, Any]:
     edges: list[dict] = []
     seen: set[str] = set()
 
-    def add(node_id: str, label: str, group: str, **extra):
+    def add(node_id: str, label: str, group: str, description: str = "", **extra):
         if node_id in seen:
             return
         seen.add(node_id)
-        nodes.append({"id": node_id, "label": label, "group": group, **extra})
+        nodes.append({"id": node_id, "label": label, "group": group,
+                      "description": description, **extra})
 
     # diseases + EEG markers from ICD-10
     for c in icd10()[:40]:
         did = f"icd:{c['code']}"
-        add(did, c["code"], "disease", title=c.get("description", "")[:140],
+        desc = (f"{c.get('description','')}. Category: {c.get('category','—')}. "
+                f"Typical EEG markers: {', '.join(c.get('eeg_markers', [])) or 'n/a'}. "
+                f"Prevalence ~{c.get('prevalence_per_100k','?')}/100k; "
+                f"onset {c.get('typical_age_onset','varies')}; severity {c.get('severity','—')}.")
+        add(did, c["code"], "disease", description=desc,
+            title=c.get("description", "")[:140],
             category=c.get("category"), severity=c.get("severity"))
         for marker in c.get("eeg_markers", [])[:3]:
             mid = f"marker:{marker}"
-            add(mid, marker, "marker")
+            add(mid, marker, "marker",
+                description=f"EEG finding '{marker}' — a quantitative/visual pattern used to "
+                            f"support diagnoses in this graph.")
             edges.append({"source": did, "target": mid, "label": "shows"})
 
     # SNOMED concepts linked to epilepsy diseases
     for s in snomed()[:18]:
         sid = f"sno:{s['concept_id']}"
-        add(sid, s["term"], "concept", semantic=s.get("semantic_type"))
-        # link generically into the epilepsy disease cluster
+        add(sid, s["term"], "concept",
+            description=f"SNOMED-CT {s['concept_id']} · {s['term']} "
+                        f"({s.get('semantic_type','concept')}). Parent: {s.get('parent','—')}.",
+            semantic=s.get("semantic_type"))
         epi = next((n["id"] for n in nodes if n["group"] == "disease"
                     and "epilep" in (n.get("title", "").lower())), None)
         if epi:
@@ -212,7 +222,11 @@ def knowledge_graph() -> dict[str, Any]:
     # medications (treatments)
     for m in rxnorm()[:12]:
         mid = f"rx:{m['rxcui']}"
-        add(mid, m["name"], "drug", drug_class=m.get("drug_class"),
+        add(mid, m["name"], "drug",
+            description=f"{m['name']} ({m.get('drug_class','medication')}). "
+                        f"Brands: {', '.join(m.get('brand_names', [])) or '—'}. "
+                        f"Typical dose: {m.get('typical_dose','—')}. RxCUI {m['rxcui']}.",
+            drug_class=m.get("drug_class"),
             dose=m.get("typical_dose"), brands=m.get("brand_names", []))
         if m.get("drug_class") == "Antiepileptic":
             epi = next((n["id"] for n in nodes if n["group"] == "disease"
@@ -222,6 +236,47 @@ def knowledge_graph() -> dict[str, Any]:
 
     return {"nodes": nodes, "edges": edges,
             "groups": ["disease", "marker", "concept", "drug"]}
+
+
+# ── literature corpus for richer GraphRAG evidence ──────────────────────────
+LITERATURE = [
+    {"title": "ILAE 2017 Classification of the Epilepsies", "year": 2017,
+     "text": "seizure classification integrates EEG semiology imaging focal generalized onset epilepsy syndrome"},
+    {"title": "AASM Manual for the Scoring of Sleep", "year": 2023,
+     "text": "sleep staging N1 N2 N3 REM spindles K-complex slow wave delta theta scoring epoch 30 second"},
+    {"title": "ACNS Standardized Critical Care EEG Terminology", "year": 2021,
+     "text": "periodic discharges rhythmic delta burst suppression encephalopathy critical care monitoring"},
+    {"title": "Quantitative EEG in encephalopathy (J Clin Neurophysiol)", "year": 2022,
+     "text": "delta alpha ratio DAR diffuse slowing encephalopathy median frequency spectral power qeeg"},
+    {"title": "Automated seizure detection with deep learning (Epilepsia)", "year": 2024,
+     "text": "seizure detection cnn lstm deep learning sensitivity specificity high frequency synchrony spike"},
+    {"title": "Neuromorphic spiking networks for EEG (Nature Mach Intell)", "year": 2025,
+     "text": "spiking neural network neuromorphic energy efficient event detection LIF spikes real time eeg"},
+    {"title": "Burst-suppression and anesthesia depth (Anesthesiology)", "year": 2020,
+     "text": "burst suppression ratio anesthesia anoxic coma suppression background attenuation"},
+    {"title": "Drug-drug interactions in antiepileptic therapy (Neurology)", "year": 2023,
+     "text": "antiepileptic drug interactions lamotrigine valproate phenytoin enzyme induction monitoring"},
+]
+
+
+def retrieve_literature(query: str, top_k: int = 3) -> list[dict]:
+    """Tiny TF-style overlap retriever over the literature corpus."""
+    q = set(_tokens(query))
+    scored = []
+    for doc in LITERATURE:
+        toks = set(_tokens(doc["text"] + " " + doc["title"]))
+        overlap = len(q & toks)
+        if overlap:
+            score = overlap / (len(q) + 1e-9)
+            scored.append((score, doc))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [{"source": f"{d['title']} ({d['year']})",
+             "snippet": d["text"][:120] + "…", "score": round(min(0.6 + s, 0.97), 3)}
+            for s, d in scored[:top_k]]
+
+
+def _tokens(s: str) -> list[str]:
+    return [w for w in "".join(c.lower() if c.isalnum() else " " for c in s).split() if len(w) > 2]
 
 
 # ── drug interactions (ported from src/clinical/drug_interactions.py) ────────

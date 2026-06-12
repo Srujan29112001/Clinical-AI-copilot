@@ -73,6 +73,12 @@ data/processed/
 *.raw
 *.dat
 
+# …but DO commit the bundled EEG test datasets (needed for the offline demo)
+!data/samples/*.csv
+!data/samples/manifest.json
+!frontend/public/datasets/*.csv
+!frontend/public/datasets/manifest.json
+
 # Models
 models/*.pth
 models/*.pt

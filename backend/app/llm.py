@@ -31,18 +31,34 @@ import httpx
 
 # provider id -> (default base_url, default model, is_anthropic)
 PROVIDERS: dict[str, tuple[str, str, bool]] = {
-    "anthropic":  ("https://api.anthropic.com/v1", "claude-3-5-sonnet-latest", True),
-    "openai":     ("https://api.openai.com/v1", "gpt-4o-mini", False),
+    "anthropic":  ("https://api.anthropic.com/v1", "claude-sonnet-4-6", True),
+    "openai":     ("https://api.openai.com/v1", "gpt-5-4-mini", False),
     "groq":       ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", False),
-    "deepseek":   ("https://api.deepseek.com/v1", "deepseek-chat", False),
-    "mistral":    ("https://api.mistral.ai/v1", "mistral-large-latest", False),
-    "openrouter": ("https://openrouter.ai/api/v1", "meta-llama/llama-3.3-70b-instruct", False),
-    "gemini":     ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash", False),
+    "deepseek":   ("https://api.deepseek.com/v1", "deepseek-v4-flash", False),
+    "mistral":    ("https://api.mistral.ai/v1", "mistral-large-2512", False),
+    "openrouter": ("https://openrouter.ai/api/v1", "anthropic/claude-sonnet-4-6", False),
+    "gemini":     ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.5-flash", False),
     # ── local GPU options (OpenAI-compatible servers) ──
     "ollama":     ("http://localhost:11434/v1", "llama3.1:8b", False),
     "vllm":       ("http://localhost:8001/v1", "meta-llama/Llama-3.1-8B-Instruct", False),
     "local":      ("http://localhost:11434/v1", "llama3.1:8b", False),
     "lmstudio":   ("http://localhost:1234/v1", "local-model", False),
+}
+
+# provider id -> curated current (2026) model ids for the UI picker
+MODELS: dict[str, list[str]] = {
+    "anthropic":  ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001", "claude-fable-5"],
+    "openai":     ["gpt-5-5", "gpt-5-4", "gpt-5-4-mini", "gpt-5-4-nano", "gpt-4-1", "o3", "o4-mini"],
+    "groq":       ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+    "deepseek":   ["deepseek-v4-flash", "deepseek-v4-pro"],
+    "mistral":    ["mistral-large-2512", "mistral-small-latest", "ministral-8b-latest"],
+    "openrouter": ["anthropic/claude-sonnet-4-6", "openai/gpt-5-4", "qwen/qwen3-coder:free",
+                   "moonshot/kimi-k2-6:free", "meta-llama/llama-3.3-70b-instruct"],
+    "gemini":     ["gemini-3.5-flash", "gemini-3.5-pro", "gemini-2.5-flash"],
+    "ollama":     ["llama3.1:8b", "llama3.2:3b", "mistral:7b", "qwen2.5:7b", "phi3:mini", "gemma2:9b"],
+    "vllm":       ["meta-llama/Llama-3.1-8B-Instruct"],
+    "local":      ["llama3.1:8b"],
+    "lmstudio":   ["local-model"],
 }
 
 LOCAL_PROVIDERS = {"ollama", "vllm", "local", "lmstudio"}
@@ -258,13 +274,14 @@ def _wordwise(text: str):
 
 
 def provider_catalog() -> list[dict]:
-    """Expose the provider registry to the UI for the picker."""
+    """Expose the provider registry (+ model lists) to the UI for the picker."""
     out = []
     for pid, (base, model, is_anthropic) in PROVIDERS.items():
         out.append(
             {
                 "id": pid,
                 "default_model": model,
+                "models": MODELS.get(pid, [model]),
                 "default_base_url": base,
                 "local": pid in LOCAL_PROVIDERS,
                 "needs_key": pid not in LOCAL_PROVIDERS,
@@ -272,3 +289,47 @@ def provider_catalog() -> list[dict]:
             }
         )
     return out
+
+
+async def list_local_models(base_url: str | None = None) -> dict:
+    """Probe a local server for its installed models ("local GPU line-up").
+
+    Tries Ollama's GET /api/tags first, then the OpenAI-compatible GET /v1/models
+    (vLLM / LM Studio). Returns quickly with whatever is reachable.
+    """
+    base = (base_url or "http://localhost:11434").rstrip("/")
+    root = base[:-3] if base.endswith("/v1") else base
+    found: list[dict] = []
+    reachable = False
+    # 1) Ollama /api/tags
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.get(f"{root}/api/tags")
+            if r.status_code == 200:
+                reachable = True
+                for m in r.json().get("models", []):
+                    det = m.get("details", {})
+                    found.append({
+                        "id": m.get("name") or m.get("model"),
+                        "size_gb": round(m.get("size", 0) / 1e9, 2),
+                        "params": det.get("parameter_size"),
+                        "quant": det.get("quantization_level"),
+                        "family": det.get("family"),
+                        "server": "ollama",
+                    })
+    except Exception:
+        pass
+    # 2) OpenAI-compatible /v1/models (vLLM / LM Studio)
+    if not found:
+        for url in (f"{root}/v1/models", f"{base}/models"):
+            try:
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    r = await client.get(url)
+                    if r.status_code == 200:
+                        reachable = True
+                        for m in r.json().get("data", []):
+                            found.append({"id": m.get("id"), "server": "openai-compatible"})
+                        break
+            except Exception:
+                continue
+    return {"reachable": reachable, "base_url": base, "models": found, "count": len(found)}

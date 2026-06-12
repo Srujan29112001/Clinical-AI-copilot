@@ -1,9 +1,13 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings2, Cpu, Cloud, ChevronDown, KeyRound } from "lucide-react";
-import type { LLMConfig } from "@/lib/types";
+import { Settings2, Cpu, Cloud, ChevronDown, KeyRound, Search, Loader2 } from "lucide-react";
+import type { LLMConfig, LocalModelsResult } from "@/lib/types";
+import { detectLocalModels, isLive } from "@/lib/api";
+import { PROVIDER_CATALOG } from "@/lib/providers";
 import { cn } from "@/lib/utils";
+
+const modelsFor = (id: string) => PROVIDER_CATALOG.find((p) => p.id === id)?.models || [];
 
 const PROVIDERS = [
   { id: "mock", label: "Demo (no key)", kind: "demo", model: "deterministic" },
@@ -21,7 +25,17 @@ const PROVIDERS = [
 
 export function SettingsPanel({ config, onChange }: { config: LLMConfig; onChange: (c: LLMConfig) => void }) {
   const [open, setOpen] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [local, setLocal] = useState<LocalModelsResult | null>(null);
   const provider = PROVIDERS.find((p) => p.id === (config.provider || "mock")) || PROVIDERS[0];
+
+  const detect = async () => {
+    setDetecting(true);
+    setLocal(null);
+    const res = await detectLocalModels(config.base_url || provider.base || "http://localhost:11434/v1");
+    setLocal(res);
+    setDetecting(false);
+  };
 
   const select = (id: string) => {
     const p = PROVIDERS.find((x) => x.id === id)!;
@@ -80,11 +94,17 @@ export function SettingsPanel({ config, onChange }: { config: LLMConfig; onChang
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Model">
                     <input
+                      list={`models-${provider.id}`}
                       value={config.model || ""}
                       onChange={(e) => onChange({ ...config, model: e.target.value })}
                       placeholder={provider.model}
                       className="input"
                     />
+                    <datalist id={`models-${provider.id}`}>
+                      {(local?.models?.length ? local.models.map((m) => m.id) : modelsFor(provider.id)).map((m) => (
+                        <option key={m} value={m} />
+                      ))}
+                    </datalist>
                   </Field>
                   {provider.kind === "local" ? (
                     <Field label="Base URL">
@@ -108,6 +128,40 @@ export function SettingsPanel({ config, onChange }: { config: LLMConfig; onChang
                         />
                       </div>
                     </Field>
+                  )}
+                </div>
+              )}
+
+              {provider.kind === "local" && (
+                <div className="rounded-lg border border-[var(--color-border)] p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[var(--color-muted)]">Local GPU line-up</span>
+                    <button onClick={detect} disabled={detecting}
+                      className="btn btn-ghost !px-3 !py-1 !text-xs disabled:opacity-50">
+                      {detecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />} Detect models
+                    </button>
+                  </div>
+                  {local && (
+                    <div className="mt-2 text-xs">
+                      {local.reachable ? (
+                        local.models.length ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {local.models.map((m) => (
+                              <button key={m.id} onClick={() => onChange({ ...config, model: m.id })}
+                                className={cn("rounded-md border px-2 py-1 transition-colors",
+                                  config.model === m.id ? "border-[var(--color-cyan)] text-[var(--color-cyan)]" : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-cyan)]/40")}>
+                                {m.id}{m.size_gb ? ` · ${m.size_gb}GB` : ""}{m.quant ? ` · ${m.quant}` : ""}
+                              </button>
+                            ))}
+                          </div>
+                        ) : <span className="text-amber-300">Server reachable but no models installed.</span>
+                      ) : (
+                        <span className="text-[var(--color-faint)]">
+                          {isLive() ? "No local server reachable at that URL — is Ollama/vLLM running?"
+                            : "Live detection needs the backend running (NEXT_PUBLIC_API_URL). The list above shows common models."}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

@@ -176,3 +176,40 @@ export function quickResult(profile: "ictal" | "normal" | "sleep"): AnalysisResu
   const s = SAMPLES.find((x) => x.profile === profile)!;
   return buildResult(profile, s.patient);
 }
+
+export async function fetchProviders(): Promise<import("./types").ProviderInfo[]> {
+  if (isLive()) {
+    try {
+      const res = await fetch(`${API_URL}/api/providers`);
+      if (res.ok) return (await res.json()).providers;
+    } catch { /* fall through */ }
+  }
+  const { PROVIDER_CATALOG } = await import("./providers");
+  return PROVIDER_CATALOG;
+}
+
+export async function detectLocalModels(baseUrl: string): Promise<import("./types").LocalModelsResult> {
+  if (!isLive()) {
+    return { reachable: false, base_url: baseUrl, count: 0, models: [] };
+  }
+  try {
+    const res = await fetch(`${API_URL}/api/local-models?base_url=${encodeURIComponent(baseUrl)}`);
+    if (res.ok) return await res.json();
+  } catch { /* ignore */ }
+  return { reachable: false, base_url: baseUrl, count: 0, models: [] };
+}
+
+export interface DatasetInfo { file: string; description?: string; condition?: string; channels?: number; samples?: number; duration_s?: number; }
+export async function fetchDatasets(): Promise<DatasetInfo[]> {
+  if (isLive()) {
+    try {
+      const res = await fetch(`${API_URL}/api/datasets`);
+      if (res.ok) return (await res.json()).datasets;
+    } catch { /* fall through */ }
+  }
+  const { LOCAL_DATASETS } = await import("./datasets-manifest");
+  return LOCAL_DATASETS;
+}
+export function datasetDownloadUrl(file: string): string {
+  return isLive() ? `${API_URL}/api/datasets/${file}` : `/datasets/${file}`;
+}

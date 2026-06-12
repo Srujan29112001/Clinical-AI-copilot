@@ -8,6 +8,9 @@ import {
 import type { AnalysisResult } from "@/lib/types";
 import { URGENCY_STYLES, SEVERITY_BY_INTERACTION, cn } from "@/lib/utils";
 import { WaveformChart, PSDChart, BandPowerBars, Donut } from "./charts";
+import {
+  ModelsUsed, SpikeRaster, DetectionsGrid, FusionPanel, TemporalTrend, HeadMap, QEEGParams,
+} from "./v3-sections";
 
 export function Results({ result }: { result: AnalysisResult }) {
   const u = URGENCY_STYLES[result.urgency] || URGENCY_STYLES.Routine;
@@ -92,6 +95,23 @@ export function Results({ result }: { result: AnalysisResult }) {
           </div>
         </div>
       </Section>
+
+      {/* ── v3: advanced model outputs ── */}
+      {result.models_used && <ModelsUsed models={result.models_used} />}
+      {result.detections && <DetectionsGrid detections={result.detections} primary={result.primary_finding} />}
+      {(result.neuromorphic || result.temporal) && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {result.neuromorphic && <SpikeRaster neuro={result.neuromorphic} />}
+          {result.temporal && <TemporalTrend temporal={result.temporal} />}
+        </div>
+      )}
+      {(result.fusion || result.qeeg) && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {result.fusion && <FusionPanel fusion={result.fusion} />}
+          {result.qeeg && <HeadMap qeeg={result.qeeg} />}
+        </div>
+      )}
+      {result.qeeg && <QEEGParams qeeg={result.qeeg} />}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* treatments */}

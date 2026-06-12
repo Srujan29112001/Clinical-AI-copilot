@@ -15,26 +15,33 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from . import knowledge, llm, samples
 from .agents import AGENTS, RunContext, chat_stream, run_pipeline
 from .eeg import load_signal
 from .schemas import ChatRequest
 
-app = FastAPI(title="Clinical AI Copilot", version="2.0.0",
+app = FastAPI(title="Clinical AI Copilot", version="3.0.0",
               docs_url="/api/docs", redoc_url="/api/redoc")
 
+# CORS: the spec forbids wildcard origin WITH credentials, so only enable
+# credentials when explicit origins are configured.
+_origins = [o.strip() for o in os.getenv("CLINICAL_CORS_ORIGINS", "*").split(",") if o.strip()]
+_wildcard = _origins == ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CLINICAL_CORS_ORIGINS", "*").split(","),
-    allow_credentials=True,
+    allow_origins=["*"] if _wildcard else _origins,
+    allow_credentials=not _wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_SAMPLES_DIR = Path(__file__).resolve().parents[2] / "data" / "samples"
 
 _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
                 "Connection": "keep-alive"}
@@ -55,6 +62,32 @@ async def health():
 @app.get("/api/providers")
 async def providers():
     return {"providers": llm.provider_catalog()}
+
+
+@app.get("/api/local-models")
+async def local_models(base_url: str | None = None):
+    """Probe a local server (Ollama / vLLM / LM Studio) for its model line-up."""
+    return await llm.list_local_models(base_url)
+
+
+@app.get("/api/datasets")
+async def datasets():
+    """List the downloadable sample EEG datasets."""
+    manifest = _SAMPLES_DIR / "manifest.json"
+    if manifest.exists():
+        return json.loads(manifest.read_text())
+    files = sorted(p.name for p in _SAMPLES_DIR.glob("*.csv")) if _SAMPLES_DIR.exists() else []
+    return {"datasets": [{"file": f} for f in files]}
+
+
+@app.get("/api/datasets/{name}")
+async def download_dataset(name: str):
+    """Download a sample EEG CSV (path-traversal-safe)."""
+    safe = Path(name).name
+    path = _SAMPLES_DIR / safe
+    if not path.exists() or path.suffix != ".csv":
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(path, media_type="text/csv", filename=safe)
 
 
 @app.get("/api/agents")

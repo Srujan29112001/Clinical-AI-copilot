@@ -1,0 +1,11 @@
+import type { DatasetInfo } from "./api";
+
+// Mirrors data/samples/manifest.json (served from /public/datasets for offline download).
+export const LOCAL_DATASETS: DatasetInfo[] = [
+  { file: "eeg_normal_awake.csv", condition: "normal", description: "Healthy adult, eyes-closed posterior dominant alpha. Expect: Routine.", channels: 16, samples: 3072, duration_s: 12 },
+  { file: "eeg_seizure_generalized.csv", condition: "ictal_generalized", description: "Generalized 3 Hz spike-wave + HF recruitment. Expect: Emergent seizure.", channels: 16, samples: 3072, duration_s: 12 },
+  { file: "eeg_seizure_focal_left_temporal.csv", condition: "ictal_focal", description: "Left temporal focal rhythmic discharge. Expect: focal seizure, left lateralization.", channels: 16, samples: 3072, duration_s: 12 },
+  { file: "eeg_sleep_n2.csv", condition: "sleep_n2", description: "Stage N2 sleep with spindles. Expect: sleep staging, Routine.", channels: 16, samples: 3072, duration_s: 12 },
+  { file: "eeg_encephalopathy_diffuse_slowing.csv", condition: "encephalopathy", description: "Diffuse delta slowing, high DAR. Expect: encephalopathy.", channels: 16, samples: 3072, duration_s: 12 },
+  { file: "eeg_burst_suppression.csv", condition: "burst_suppression", description: "Burst-suppression pattern. Expect: high suppression ratio, Emergent.", channels: 16, samples: 3072, duration_s: 12 },
+];

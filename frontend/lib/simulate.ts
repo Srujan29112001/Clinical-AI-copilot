@@ -126,12 +126,18 @@ export function buildResult(profile: Profile, patient: PatientContext, recording
       ? [{ name: "No pharmacotherapy indicated", type: "Pathway", dosage: "—", line: "first" }, { name: "Routine follow-up", type: "Pathway", dosage: "—", line: "first" }]
       : [{ name: "Levetiracetam", type: "Antiepileptic", dosage: "500-1500mg BID", line: "first" }, { name: "Lamotrigine", type: "Antiepileptic", dosage: "100-200mg BID", line: "first" }, { name: "Valproic Acid", type: "Antiepileptic", dosage: "250-1000mg BID", line: "second" }];
 
+  // ── v3 extras (mirror the backend so the offline demo shows everything) ──
+  const v3 = buildV3(profile, b, sync, p, entropy, dxKey, confidence, rnd, symptomsLc);
+
   const notes: string[] = [];
   if (confidence < 0.6) notes.push("Low diagnostic confidence — recommend specialist confirmation");
+  if (v3.fusion.uncertainty > 0.12) notes.push(`Elevated model uncertainty (${v3.fusion.uncertainty.toFixed(2)}) — interpret with caution`);
   if (drug.requires_action) notes.push("Major/contraindicated drug interaction flagged — review before prescribing");
   if (p >= 0.8) notes.push("High seizure probability — time-critical pathway");
+  if (v3.primary_finding === "burst_suppression") notes.push("Burst-suppression — assess sedation depth / anoxic injury urgently");
 
   return {
+    ...v3,
     report_id: `RPT-${Math.floor(rnd() * 1e8).toString().padStart(8, "0")}`,
     patient_id: patient.patient_id,
     urgency, severity: dx.sev,
@@ -166,6 +172,124 @@ export function buildResult(profile: Profile, patient: PatientContext, recording
     safety: { passed: notes.length === 0, notes, calibrated_confidence: r(Math.min(confidence, 0.95)) },
   };
 }
+
+const EVENT_CLASSES = [
+  "spike-wave complex", "sharp transient", "rhythmic discharge", "slow-wave burst",
+  "muscle artifact", "background rhythm", "attenuation/suppression", "K-complex/spindle",
+];
+const CHANS = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "T3", "C3", "Cz", "C4", "T4", "P3", "Pz", "P4", "O1"];
+
+function buildV3(profile: string, b: BandPowers, sync: number, p: number, entropy: number,
+                 dxKey: string, confidence: number, rnd: () => number, symptomsLc: string) {
+  const hf = b.beta + b.gamma;
+  const dar = b.delta / (b.alpha + 1e-9);
+  const plv = profile === "ictal" ? 0.75 + rnd() * 0.2 : 0.3 + rnd() * 0.3;
+  const spikeRate = profile === "ictal" ? 0.8 + rnd() : rnd() * 0.3;
+  const suppression = profile === "burst" ? 0.4 + rnd() * 0.3 : rnd() * 0.1;
+  const lateralization = profile === "ictal" && rnd() > 0.5 ? "left" : "symmetric";
+
+  // event-evidence → SNN raster (8 neurons × 30 steps)
+  const evidence = [
+    Math.min(p * 0.9 + spikeRate * 0.2, 0.98), Math.min(spikeRate * 0.6 + 0.1, 0.95),
+    Math.min(plv * 0.7 + hf * 0.4, 0.97), Math.min(b.delta * 1.3, 0.95),
+    Math.min((b.gamma) * 1.5, 0.9), Math.min(b.alpha * 1.4, 0.9),
+    Math.min(suppression * 1.6, 0.95), Math.min((profile === "sleep" ? 0.6 : 0.1) + b.theta * 0.4, 0.95),
+  ];
+  const raster: number[][] = evidence.map((e) => Array.from({ length: 30 }, () => (rnd() < e ? 1 : 0) as number));
+  const counts = raster.map((row) => row.reduce((a, c) => a + c, 0));
+  const detectedIdx = counts.indexOf(Math.max(...counts));
+  const totalSpikes = counts.reduce((a, c) => a + c, 0) + Math.round(40 + rnd() * 40);
+
+  const trendSlope = profile === "ictal" ? 0.08 + rnd() * 0.06 : (rnd() - 0.5) * 0.08;
+  const trend = trendSlope > 0.05 ? "escalating" : trendSlope < -0.05 ? "resolving" : "stable";
+  const stateSeries = Array.from({ length: 8 }, (_, i) => r(1 + i * trendSlope + rnd() * 0.3));
+
+  const sevIdx = ["minimal", "mild", "moderate", "severe", "critical"].indexOf(
+    dxKey === "ictal" ? (p >= 0.8 ? "severe" : "moderate") : dxKey === "sleep" || dxKey === "normal" ? "mild" : "moderate");
+  const sevDist = softDist(5, Math.max(sevIdx, 0), rnd);
+  const urgIdx = p >= 0.8 ? 2 : p >= 0.45 ? 1 : 0;
+  const urgDist = softDist(3, urgIdx, rnd);
+  const uncertainty = r(0.02 + (1 - confidence) * 0.15 + rnd() * 0.03);
+
+  const detections = [
+    mkDet("seizure", "Ictal seizure activity", p, p >= 0.45, p >= 0.8 ? "critical" : "moderate",
+      { type: p >= 0.8 ? "generalized" : p >= 0.45 ? "focal" : "none", lateralization },
+      p >= 0.45 ? `high-frequency power ${pctNum(hf)}, PLV ${plv.toFixed(2)}` : "no ictal pattern"),
+    mkDet("sleep", `Sleep stage: ${profile === "sleep" ? "N2" : "Wake"}`, profile === "sleep" ? 0.75 : 0.5,
+      profile === "sleep", "minimal", { stage: profile === "sleep" ? "N2" : "Wake" },
+      profile === "sleep" ? "theta background + spindles" : "alpha-dominant, awake"),
+    mkDet("encephalopathy", "Diffuse slowing / encephalopathy", r(Math.min(Math.max((dar - 1.5) / 4.5, 0) * (profile === "sleep" ? 0.3 : 1), 0.99)),
+      dar > 3 && profile !== "sleep", "moderate", { DAR: r(dar) }, `delta/alpha ratio ${dar.toFixed(1)}`),
+    mkDet("burst_suppression", "Burst-suppression", r(Math.min(suppression * 1.5, 0.99)), profile === "burst",
+      "critical", { suppression_ratio: r(suppression) }, profile === "burst" ? `suppression ratio ${pctNum(suppression)}` : "continuous background"),
+    mkDet("focal", "Focal abnormality / lateralization", lateralization !== "symmetric" ? 0.6 : 0.2,
+      lateralization !== "symmetric", "moderate", { lateralization }, lateralization !== "symmetric" ? `${lateralization} lateralization` : "symmetric"),
+    mkDet("pdr", "Posterior dominant rhythm", profile === "normal" ? 0.9 : 0.2, profile === "normal", "minimal",
+      { frequency_hz: 10 }, profile === "normal" ? "PDR present at 10 Hz (normal variant)" : "no organized posterior alpha"),
+    mkDet("quality", "Recording quality", 0.85, false, "minimal", { quality_score: 0.85 }, "good signal quality"),
+  ];
+  const abnormal = detections.filter((d) => !["pdr", "quality", "sleep"].includes(d.id) && d.present);
+  const primary_finding = abnormal.length ? abnormal.sort((a, c) => c.score - a.score)[0].id
+    : profile === "sleep" ? "sleep" : "normal";
+
+  const qeeg = {
+    n_features: 50, channels: CHANS,
+    spectral: {
+      rel_band_power: b,
+      abs_band_power: { delta: r(b.delta * 12), theta: r(b.theta * 12), alpha: r(b.alpha * 12), beta: r(b.beta * 12), gamma: r(b.gamma * 12) },
+      band_ratios: { theta_beta: r(b.theta / (b.beta + 1e-9)), delta_alpha: r(dar), delta_theta: r(b.delta / (b.theta + 1e-9)), alpha_delta: r(b.alpha / (b.delta + 1e-9)) },
+      sef95: r(profile === "ictal" ? 32 + rnd() * 8 : 18 + rnd() * 6), median_freq: r(profile === "encephalopathy" ? 3 + rnd() * 2 : 8 + rnd() * 3),
+      peak_freq: r(profile === "ictal" ? 24 : profile === "sleep" ? 6 : 10), spectral_entropy: entropy,
+    },
+    time_domain: { rms: r(20 + rnd() * 30), line_length: r(20 + p * 60), zero_crossing_rate: r(50 + rnd() * 100),
+      kurtosis: r((rnd() - 0.5) * 2), skewness: r((rnd() - 0.5)), activity: r(rnd()), mobility: r(0.2 + rnd() * 0.3), complexity: r(1 + rnd()) },
+    complexity: { shannon_entropy: r(0.6 + rnd() * 0.3), permutation_entropy: r(0.7 + rnd() * 0.2), sample_entropy: r(0.8 + rnd()), approximate_entropy: r(0.5 + rnd() * 0.5) },
+    connectivity: { mean_correlation: r(sync), alpha_coherence: r(0.3 + rnd() * 0.4), plv: r(plv), pli: r(0.2 + rnd() * 0.3) },
+    asymmetry: { index: r(lateralization === "left" ? 0.2 : (rnd() - 0.5) * 0.1), lateralization, per_band: {} },
+    events: { spike_count: Math.round(spikeRate * 10), spike_rate_hz: r(spikeRate) },
+    states: { suppression_ratio: r(suppression), burst_suppression: profile === "burst" },
+    quality: { flatline_frac: 0, clipping_frac: 0, emg_index: r(b.gamma), blink_index: r(b.delta * 0.5), quality_score: 0.85 },
+    topography: CHANS.map((ch, i) => {
+      const jit = () => (rnd() - 0.5) * 0.06;
+      const tb = norm({ delta: b.delta + jit(), theta: b.theta + jit(), alpha: b.alpha + jit() + (i > 11 ? 0.1 : 0), beta: b.beta + jit(), gamma: b.gamma + jit() });
+      return { channel: ch, rel_band_power: tb, dominant: (Object.entries(tb).sort((a, c) => c[1] - a[1])[0][0]) };
+    }),
+  };
+
+  return {
+    confidence, uncertainty, primary_finding,
+    models_used: { signal: "CNN-LSTM encoder", events: "Spiking NN (LIF)", temporal: "Mamba2 SSM",
+      knowledge: "GraphRAG + literature", fusion: "Cross-attention + MC-dropout", reasoning: "simulated (offline)" },
+    qeeg, detections,
+    neuromorphic: {
+      top_events: [...counts].map((c, i) => ({ event: EVENT_CLASSES[i], activation: r(c / (totalSpikes + 1e-9)), spikes: c }))
+        .sort((a, c) => c.spikes - a.spikes).slice(0, 4),
+      detected_event: EVENT_CLASSES[detectedIdx], firing_rate: r(0.15 + rnd() * 0.15),
+      total_spikes: totalSpikes, energy_uj: r(totalSpikes * 0.9e-3),
+      raster, raster_labels: EVENT_CLASSES, steps: 30, neurons: 8,
+    },
+    temporal: { state_norm_series: stateSeries, trend_slope: r(trendSlope), trend, windows: 8 },
+    fusion: {
+      severity: ["minimal", "mild", "moderate", "severe", "critical"][argmax(sevDist)],
+      severity_dist: distObj(["minimal", "mild", "moderate", "severe", "critical"], sevDist),
+      urgency: ["Routine", "Urgent", "Emergent"][argmax(urgDist)],
+      urgency_dist: distObj(["Routine", "Urgent", "Emergent"], urgDist),
+      confidence, uncertainty, attention_to_text: r(0.3 + rnd() * 0.3), mc_samples: 30,
+    },
+  };
+}
+
+function mkDet(id: string, label: string, score: number, present: boolean, severity_hint: string, detail: Record<string, unknown>, explanation: string) {
+  return { id, label, score: r(score), present, severity_hint, detail, explanation };
+}
+function softDist(n: number, peak: number, rnd: () => number): number[] {
+  const v = Array.from({ length: n }, (_, i) => Math.exp(-Math.abs(i - peak)) + rnd() * 0.1);
+  const s = v.reduce((a, c) => a + c, 0);
+  return v.map((x) => x / s);
+}
+function distObj(labels: string[], dist: number[]) { return Object.fromEntries(labels.map((l, i) => [l, r(dist[i])])); }
+function argmax(a: number[]) { return a.indexOf(Math.max(...a)); }
+function pctNum(x: number) { return `${Math.round(x * 100)}%`; }
 
 function triageText(urgency: string, p: number) {
   if (urgency === "Emergent") return `URGENCY: EMERGENT. The EEG shows a high probability of ictal activity (p=${p.toFixed(2)}). Escalate to the on-call neurologist immediately and follow status-epilepticus protocol if clinical seizures are observed.`;

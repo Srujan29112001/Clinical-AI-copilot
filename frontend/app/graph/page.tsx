@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Network, X, Maximize2, Info } from "lucide-react";
 import { ForceGraph } from "@/components/graph/force-graph";
+import { Graph3D } from "@/components/graph/graph-3d";
 import { fetchKnowledgeGraph } from "@/lib/api";
 import type { GraphNode, KnowledgeGraph } from "@/lib/types";
 import { GROUP_COLORS, cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function GraphPage() {
   const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
   const [active, setActive] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
+  const [view, setView] = useState<"3d" | "2d">("3d");
 
   useEffect(() => {
     fetchKnowledgeGraph().then((g) => {
@@ -58,9 +60,20 @@ export default function GraphPage() {
         <div className="panel relative h-[600px] overflow-hidden">
           {graph ? (
             <>
-              <ForceGraph graph={graph} activeGroups={active} onSelect={setSelected} />
+              {view === "3d"
+                ? <Graph3D graph={graph} activeGroups={active} onSelect={setSelected} />
+                : <ForceGraph graph={graph} activeGroups={active} onSelect={setSelected} />}
               <div className="pointer-events-none absolute left-4 top-4 chip">
-                <Maximize2 className="h-3 w-3" /> scroll to zoom · drag to pan
+                <Maximize2 className="h-3 w-3" /> {view === "3d" ? "drag to orbit · scroll to zoom" : "scroll to zoom · drag to pan"}
+              </div>
+              <div className="absolute right-4 top-4 flex gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/80 p-1 backdrop-blur">
+                {(["3d", "2d"] as const).map((v) => (
+                  <button key={v} onClick={() => setView(v)}
+                    className={cn("rounded-md px-3 py-1 text-xs font-medium uppercase transition-colors",
+                      view === v ? "bg-[var(--color-cyan)]/15 text-[var(--color-cyan)]" : "text-[var(--color-faint)] hover:text-[var(--color-ink)]")}>
+                    {v}
+                  </button>
+                ))}
               </div>
             </>
           ) : (
@@ -83,7 +96,8 @@ export default function GraphPage() {
                 {GROUP_LABELS[selected.group] || selected.group}
               </span>
               <h3 className="mt-2 font-semibold">{selected.label}</h3>
-              {selected.title && <p className="mt-1 text-xs text-[var(--color-muted)]">{selected.title}</p>}
+              {selected.description && <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">{selected.description}</p>}
+              {!selected.description && selected.title && <p className="mt-1 text-xs text-[var(--color-muted)]">{selected.title}</p>}
               <dl className="mt-3 space-y-1 text-xs">
                 {selected.category && <Row k="Category" v={selected.category} />}
                 {selected.severity && <Row k="Severity" v={selected.severity} />}

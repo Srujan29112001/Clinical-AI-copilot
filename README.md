@@ -19,15 +19,31 @@ real time — running on **your local GPU** *or* **any API provider**.
 
 ---
 
-## ✨ Highlights
+## ✨ Highlights (v3)
 
-- **Seven-agent pipeline** — Triage → Signal Analyst → Knowledge Retriever → Diagnostician → Pharmacologist → Safety Critic → Reporter, streamed live over Server-Sent Events.
-- **Hybrid inference** — run privately on **Ollama / vLLM / LM Studio** (local GPU, no key) or wire any agent to **Anthropic, OpenAI, Groq, DeepSeek, Mistral, Gemini, OpenRouter**. Mix per agent.
-- **Upload your own data** — `EDF · CSV · TSV · NPY · JSON` (channels × samples), or use the built-in ictal / normal / sleep samples.
-- **Interactive knowledge graph** — force-directed visualisation of the ICD-10 / SNOMED-CT / RxNorm GraphRAG that grounds every diagnosis.
-- **AI chat copilot** — ask questions about the latest analysis (EEG findings, diagnosis, drug safety), grounded in the result.
-- **Zero-key live demo** — with no backend configured, the entire app runs a deterministic simulation in the browser, so the public Vercel link is always testable.
-- **Explainable seizure detection** — transparent, rule-based estimate from band power, synchrony and entropy (swap in the CNN-LSTM research model for production).
+- **Eleven-agent pipeline** — Signal Analyst → Neuromorphic Detector → Multi-Detector → Temporal Modeler → Triage → Knowledge Retriever → Multimodal Fusion → Diagnostician → Pharmacologist → Safety Critic → Reporter, streamed live over SSE.
+- **Real model engine (NumPy ports of the PyTorch models)** — a **CNN-LSTM** EEG encoder, a **Spiking Neural Network** (LIF) that emits a live **spike raster**, a **Mamba2** selective-state-space temporal model, and a **multimodal cross-attention fusion** head with **Monte-Carlo-dropout uncertainty**. Faithful forward passes driven by the *real* features — same result contract as `src/models/`.
+- **50+ qEEG parameters** — band powers & ratios, spectral edge frequency, 4 entropies (Shannon/sample/permutation/approximate), Hjorth, connectivity (Pearson/coherence/PLV/PLI), inter-hemispheric asymmetry, spike rate, burst-suppression ratio, signal-quality metrics, per-electrode topography.
+- **7 detection use-cases** — seizure (generalized vs focal, lateralised), sleep stage (W/N1/N2/N3/REM), encephalopathy (DAR), burst-suppression, focal abnormality, posterior dominant rhythm, recording quality.
+- **Hybrid inference, per agent** — local GPU (**Ollama / vLLM / LM Studio**, no key) *or* **Anthropic · OpenAI · Groq · DeepSeek · Mistral · Gemini · OpenRouter**, with a **per-provider model picker** and **live local-GPU model detection** built into the app.
+- **3D interactive knowledge graph** — three.js force-directed GraphRAG (ICD-10 / SNOMED-CT / RxNorm) with click-for-description, plus a 2D mode.
+- **Upload your own data** — `EDF · CSV · TSV · NPY · JSON`, or download the **6 built-in test datasets** (see below).
+- **AI chat copilot** grounded in the latest analysis · **zero-key offline demo** so the public Vercel link always works.
+
+## 🧪 Test datasets
+
+Six realistic 16-channel (10-20 montage) EEG recordings ship in [`data/samples/`](data/samples/) and are downloadable from the Studio:
+
+| File | Condition | Expected result |
+|---|---|---|
+| `eeg_normal_awake.csv` | Healthy, eyes-closed alpha | Routine · PDR present |
+| `eeg_seizure_generalized.csv` | 3 Hz spike-wave + HF recruitment | **Emergent** · generalized seizure |
+| `eeg_seizure_focal_left_temporal.csv` | Left temporal discharge | Urgent · focal seizure, **left** lateralization |
+| `eeg_sleep_n2.csv` | N2 sleep with spindles | Routine · sleep staging |
+| `eeg_encephalopathy_diffuse_slowing.csv` | Diffuse delta (high DAR) | encephalopathy |
+| `eeg_burst_suppression.csv` | Burst-suppression | **Emergent** · high suppression ratio |
+
+Regenerate / extend them with `python scripts/generate_test_datasets.py`.
 
 ---
 
@@ -143,15 +159,16 @@ Supported provider ids: `ollama` · `vllm` · `lmstudio` · `local` · `anthropi
 
 ## 🌐 Deploy (make it live)
 
-**Frontend → Vercel**
-1. Import the repo on [vercel.com](https://vercel.com), set **Root Directory = `frontend`**.
-2. (Optional) set `NEXT_PUBLIC_API_URL` to your backend URL. Leave empty for the standalone demo.
-3. Deploy. (`frontend/vercel.json` is already configured.)
+**Full step-by-step (with exactly what you do manually): [DEPLOYMENT.md](DEPLOYMENT.md).**
 
-**Backend → Render / Fly / Railway**
-- Render: the repo includes [`render.yaml`](render.yaml) — "New → Blueprint".
-- Any Docker host: `docker build -f backend/Dockerfile -t clinical-ai-backend .`
-- Set `CLINICAL_CORS_ORIGINS` to your frontend origin in production.
+Fastest path — the frontend works standalone (offline demo), so one click gives a live link:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FSrujan29112001%2FClinical-AI-copilot&project-name=clinical-ai-copilot&root-directory=frontend)
+
+- **Frontend → Vercel** — import repo, **Root Directory = `frontend`**, Deploy. (Optional `NEXT_PUBLIC_API_URL` → backend.)
+- **Backend → Hugging Face Spaces** (free, no cold-starts, best for SSE) or **Render** (`render.yaml`). Set `CLINICAL_CORS_ORIGINS` to your frontend origin.
+
+> A live URL is created on **your** Vercel/HF account and needs your login — I can't authenticate as you, so deployment is the one manual step. It takes ~5 minutes; [DEPLOYMENT.md](DEPLOYMENT.md) has the clicks.
 
 ---
 

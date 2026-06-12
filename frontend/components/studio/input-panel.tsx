@@ -1,8 +1,9 @@
 "use client";
-import { useRef, useState } from "react";
-import { Upload, FileCheck2, X, Play, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Upload, FileCheck2, X, Play, Loader2, Download } from "lucide-react";
 import { SAMPLES, type SampleDataset } from "@/lib/samples";
 import type { PatientContext } from "@/lib/types";
+import { fetchDatasets, datasetDownloadUrl, type DatasetInfo } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export interface RunInput {
@@ -24,6 +25,8 @@ export function InputPanel({
 
   const sample = SAMPLES.find((s) => s.id === sampleId) || SAMPLES[0];
   const [patient, setPatient] = useState<PatientContext>(sample.patient);
+  const [downloads, setDownloads] = useState<DatasetInfo[]>([]);
+  useEffect(() => { fetchDatasets().then(setDownloads).catch(() => {}); }, []);
 
   const pickSample = (id: string) => {
     setSampleId(id);
@@ -99,6 +102,27 @@ export function InputPanel({
           )}
         </div>
       </div>
+
+      {/* downloadable test datasets */}
+      {downloads.length > 0 && (
+        <div>
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Download className="h-3.5 w-3.5 text-[var(--color-cyan)]" /> Download test datasets
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {downloads.map((d) => (
+              <a key={d.file} href={datasetDownloadUrl(d.file)} download
+                title={d.description}
+                className="chip !py-1 hover:border-[var(--color-cyan)] hover:text-[var(--color-cyan)]">
+                {d.file.replace("eeg_", "").replace(".csv", "").replace(/_/g, " ")}
+              </a>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--color-faint)]">
+            Download a real 16-channel CSV, then drag it into the upload box above to test the full pipeline.
+          </p>
+        </div>
+      )}
 
       {/* patient context */}
       <div>

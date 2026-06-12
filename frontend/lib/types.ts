@@ -82,6 +82,67 @@ export interface AnalysisResult {
     requires_action: boolean;
   };
   safety: { passed: boolean; notes: string[]; calibrated_confidence: number };
+
+  // ── v3 additions (optional for backward-compat) ──
+  confidence?: number;
+  uncertainty?: number;
+  primary_finding?: string;
+  models_used?: Record<string, string>;
+  qeeg?: QEEG;
+  detections?: Detection[];
+  neuromorphic?: Neuromorphic;
+  temporal?: Temporal;
+  fusion?: Fusion;
+}
+
+export interface QEEG {
+  n_features: number;
+  channels: string[];
+  spectral: {
+    rel_band_power: BandPowers;
+    abs_band_power: BandPowers;
+    band_ratios: Record<string, number>;
+    sef95: number; median_freq: number; peak_freq: number; spectral_entropy: number;
+  };
+  time_domain: Record<string, number>;
+  complexity: Record<string, number>;
+  connectivity: { mean_correlation: number; alpha_coherence: number; plv: number; pli: number };
+  asymmetry: { index: number; lateralization: string; per_band: Record<string, number> };
+  events: { spike_count: number; spike_rate_hz: number };
+  states: { suppression_ratio: number; burst_suppression: boolean };
+  quality: Record<string, number>;
+  topography: Array<{ channel: string; rel_band_power: BandPowers; dominant: string }>;
+}
+
+export interface Detection {
+  id: string; label: string; score: number; present: boolean;
+  severity_hint: string; detail: Record<string, unknown>; explanation: string;
+}
+
+export interface Neuromorphic {
+  top_events: Array<{ event: string; activation: number; spikes: number }>;
+  detected_event: string; firing_rate: number; total_spikes: number; energy_uj: number;
+  raster: number[][]; raster_labels: string[]; steps: number; neurons: number;
+}
+
+export interface Temporal {
+  state_norm_series: number[]; trend_slope: number; trend: string; windows: number;
+}
+
+export interface Fusion {
+  severity: string; severity_dist: Record<string, number>;
+  urgency: string; urgency_dist: Record<string, number>;
+  confidence: number; uncertainty: number; attention_to_text: number; mc_samples: number;
+}
+
+export interface ProviderInfo {
+  id: string; default_model: string; models: string[]; default_base_url: string;
+  local: boolean; needs_key: boolean; kind: string;
+}
+
+export interface LocalModelsResult {
+  reachable: boolean; base_url: string; count: number;
+  models: Array<{ id: string; size_gb?: number; params?: string; quant?: string; server: string }>;
 }
 
 export interface ChatHandlers {
@@ -92,6 +153,7 @@ export interface ChatHandlers {
 
 export interface GraphNode {
   id: string; label: string; group: string;
+  description?: string;
   title?: string; category?: string; severity?: string;
   semantic?: string; drug_class?: string; dose?: string; brands?: string[];
 }
