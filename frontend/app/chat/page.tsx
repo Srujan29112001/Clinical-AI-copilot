@@ -105,7 +105,7 @@ export default function ChatPage() {
                   <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1", m.role === "user" ? "bg-[var(--color-violet)]/15 ring-[var(--color-violet)]/40" : "bg-[var(--color-cyan)]/15 ring-[var(--color-cyan)]/40")}>
                     {m.role === "user" ? <User className="h-4 w-4 text-[var(--color-violet)]" /> : <Bot className="h-4 w-4 text-[var(--color-cyan)]" />}
                   </div>
-                  <div className={cn("max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed", m.role === "user" ? "bg-[var(--color-violet)]/10 text-[var(--color-ink)]" : "bg-[var(--color-panel-2)] text-[var(--color-muted)]")}>
+                  <div className={cn("max-w-[80%] min-w-0 whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed", m.role === "user" ? "bg-[var(--color-violet)]/10 text-[var(--color-ink)]" : "bg-[var(--color-panel-2)] text-[var(--color-muted)]")}>
                     {m.content || (streaming && i === messages.length - 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : null)}
                   </div>
                 </motion.div>

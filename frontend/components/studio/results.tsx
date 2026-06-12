@@ -19,18 +19,18 @@ export function Results({ result }: { result: AnalysisResult }) {
       {/* urgency banner */}
       <div className={cn("panel flex flex-wrap items-center justify-between gap-4 p-5 ring-1", u.bg, u.ring)}>
         <div className="flex items-center gap-3">
-          <AlertTriangle className={cn("h-6 w-6", u.text)} />
+          <AlertTriangle className={cn("h-6 w-6 shrink-0", u.text)} />
           <div>
             <p className="text-xs uppercase tracking-wider text-[var(--color-muted)]">Disposition</p>
             <p className={cn("text-xl font-bold", u.text)}>{result.urgency}</p>
           </div>
         </div>
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <Meta label="Severity" value={result.severity} />
           <Meta label="Report" value={result.report_id} mono />
           <Meta label="Patient" value={result.patient_id} mono />
         </div>
-        <Link href="/chat" className="btn btn-ghost !py-2">
+        <Link href="/chat" className="btn btn-ghost shrink-0 !py-2">
           <MessageSquare className="h-4 w-4" /> Ask the copilot
         </Link>
       </div>
@@ -38,18 +38,20 @@ export function Results({ result }: { result: AnalysisResult }) {
       <div className="grid gap-5 lg:grid-cols-3">
         {/* primary diagnosis */}
         <Section title="Primary diagnosis" icon={Stethoscope} className="lg:col-span-2">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <Donut value={result.primary_diagnosis.confidence} label="confidence" color="var(--color-violet)" />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold">{result.primary_diagnosis.condition}</h3>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="shrink-0 self-center sm:self-start">
+              <Donut value={result.primary_diagnosis.confidence} label="confidence" color="var(--color-violet)" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="break-words text-lg font-semibold">{result.primary_diagnosis.condition}</h3>
               {result.primary_diagnosis.icd10 && (
                 <span className="chip mt-1">ICD-10 · {result.primary_diagnosis.icd10}</span>
               )}
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+              <p className="mt-3 break-words text-sm leading-relaxed text-[var(--color-muted)]">
                 {result.primary_diagnosis.reasoning}
               </p>
               {result.primary_diagnosis.provider && result.primary_diagnosis.provider !== "simulated" && (
-                <p className="mt-2 text-xs text-[var(--color-faint)]">Reasoned by: {result.primary_diagnosis.provider}</p>
+                <p className="mt-2 break-words text-xs text-[var(--color-faint)]">Reasoned by: {result.primary_diagnosis.provider}</p>
               )}
             </div>
           </div>
@@ -57,15 +59,17 @@ export function Results({ result }: { result: AnalysisResult }) {
 
         {/* seizure probability */}
         <Section title="Seizure risk" icon={Activity}>
-          <div className="flex items-center gap-4">
-            <Donut
-              value={result.eeg.seizure_probability}
-              label="probability"
-              color={result.eeg.seizure_probability >= 0.8 ? "var(--color-red)" : result.eeg.seizure_probability >= 0.45 ? "var(--color-amber)" : "var(--color-green)"}
-            />
-            <ul className="flex-1 space-y-1.5 text-xs text-[var(--color-muted)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="shrink-0 self-center">
+              <Donut
+                value={result.eeg.seizure_probability}
+                label="probability"
+                color={result.eeg.seizure_probability >= 0.8 ? "var(--color-red)" : result.eeg.seizure_probability >= 0.45 ? "var(--color-amber)" : "var(--color-green)"}
+              />
+            </div>
+            <ul className="min-w-0 flex-1 space-y-1.5 text-xs text-[var(--color-muted)]">
               {result.eeg.seizure_reasons.map((r, i) => (
-                <li key={i} className="flex gap-2"><span className="text-[var(--color-cyan)]">›</span> {r}</li>
+                <li key={i} className="flex gap-2"><span className="shrink-0 text-[var(--color-cyan)]">›</span> <span className="min-w-0 break-words">{r}</span></li>
               ))}
             </ul>
           </div>
@@ -118,14 +122,14 @@ export function Results({ result }: { result: AnalysisResult }) {
         <Section title="Recommended treatments" icon={Pill}>
           <ul className="space-y-2">
             {result.treatments.map((t, i) => (
-              <li key={i} className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-3 py-2.5">
-                <div>
-                  <span className="text-sm font-medium">{t.name}</span>
-                  <span className="ml-2 text-xs text-[var(--color-faint)]">{t.type}</span>
+              <li key={i} className="rounded-lg border border-[var(--color-border)] px-3 py-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words text-sm font-medium">{t.name}</span>
+                  <span className={cn("chip shrink-0 !py-0.5 !text-[10px]", t.line === "first" ? "!text-emerald-300" : "")}>{t.line}-line</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs text-[var(--color-muted)]">{t.dosage}</span>
-                  <span className={cn("ml-2 chip !py-0.5 !text-[10px]", t.line === "first" ? "!text-emerald-300" : "")}>{t.line}-line</span>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-faint)]">
+                  <span>{t.type}</span>
+                  {t.dosage && t.dosage !== "—" && <><span aria-hidden>·</span><span className="text-[var(--color-muted)]">{t.dosage}</span></>}
                 </div>
               </li>
             ))}
@@ -143,12 +147,13 @@ export function Results({ result }: { result: AnalysisResult }) {
             <ul className="space-y-2">
               {result.drug_safety.interactions.map((it, i) => (
                 <li key={i} className={cn("rounded-lg border px-3 py-2.5 text-sm", SEVERITY_BY_INTERACTION[it.severity])}>
-                  <div className="flex items-center gap-2 font-medium">
-                    <TriangleAlert className="h-4 w-4" /> {it.drug1} + {it.drug2}
-                    <span className="ml-auto text-[10px] uppercase tracking-wider">{it.severity}</span>
+                  <div className="flex items-start gap-2 font-medium">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span className="min-w-0 break-words">{it.drug1} + {it.drug2}</span>
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider">{it.severity}</span>
                   </div>
-                  <p className="mt-1 text-xs opacity-90">{it.description}</p>
-                  <p className="mt-0.5 text-xs opacity-75"><strong>Manage:</strong> {it.management}</p>
+                  <p className="mt-1 break-words text-xs opacity-90">{it.description}</p>
+                  <p className="mt-0.5 break-words text-xs opacity-75"><strong>Manage:</strong> {it.management}</p>
                 </li>
               ))}
             </ul>
@@ -162,9 +167,9 @@ export function Results({ result }: { result: AnalysisResult }) {
           <ul className="space-y-2">
             {result.diagnoses.map((d, i) => (
               <li key={i} className="rounded-lg border border-[var(--color-border)] px-3 py-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium line-clamp-1">{d.condition}</span>
-                  <span className="font-mono text-xs text-[var(--color-cyan)]">{(d.confidence * 100).toFixed(0)}%</span>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words text-sm font-medium">{d.condition}</span>
+                  <span className="shrink-0 font-mono text-xs text-[var(--color-cyan)]">{(d.confidence * 100).toFixed(0)}%</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <span className="chip !py-0.5 !text-[10px]">{d.icd10}</span>
@@ -182,11 +187,11 @@ export function Results({ result }: { result: AnalysisResult }) {
           <ul className="space-y-2">
             {result.evidence.map((e, i) => (
               <li key={i} className="rounded-lg border border-[var(--color-border)] px-3 py-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-[var(--color-cyan)]">{e.source}</span>
-                  <span className="font-mono text-xs text-[var(--color-faint)]">{(e.score * 100).toFixed(0)}%</span>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words text-xs font-medium text-[var(--color-cyan)]">{e.source}</span>
+                  <span className="shrink-0 font-mono text-xs text-[var(--color-faint)]">{(e.score * 100).toFixed(0)}%</span>
                 </div>
-                <p className="mt-1 text-xs text-[var(--color-muted)]">{e.snippet}</p>
+                <p className="mt-1 break-words text-xs text-[var(--color-muted)]">{e.snippet}</p>
               </li>
             ))}
           </ul>
@@ -217,9 +222,9 @@ export function Results({ result }: { result: AnalysisResult }) {
 
 function Section({ title, icon: Icon, children, className }: { title: string; icon: typeof Activity; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("panel p-5", className)}>
+    <div className={cn("panel min-w-0 p-5", className)}>
       <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <Icon className="h-4 w-4 text-[var(--color-cyan)]" /> {title}
+        <Icon className="h-4 w-4 shrink-0 text-[var(--color-cyan)]" /> {title}
       </h3>
       {children}
     </div>
@@ -228,9 +233,9 @@ function Section({ title, icon: Icon, children, className }: { title: string; ic
 
 function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs uppercase tracking-wider text-[var(--color-faint)]">{label}</p>
-      <p className={cn("font-semibold capitalize", mono && "font-mono text-xs normal-case")}>{value}</p>
+      <p className={cn("font-semibold capitalize", mono && "max-w-[180px] truncate font-mono text-xs normal-case")} title={mono ? value : undefined}>{value}</p>
     </div>
   );
 }

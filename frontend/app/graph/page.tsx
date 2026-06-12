@@ -95,9 +95,9 @@ export default function GraphPage() {
               <span className="chip !py-0.5" style={{ color: GROUP_COLORS[selected.group] }}>
                 {GROUP_LABELS[selected.group] || selected.group}
               </span>
-              <h3 className="mt-2 font-semibold">{selected.label}</h3>
-              {selected.description && <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">{selected.description}</p>}
-              {!selected.description && selected.title && <p className="mt-1 text-xs text-[var(--color-muted)]">{selected.title}</p>}
+              <h3 className="mt-2 break-words font-semibold">{selected.label}</h3>
+              {selected.description && <p className="mt-1 break-words text-xs leading-relaxed text-[var(--color-muted)]">{selected.description}</p>}
+              {!selected.description && selected.title && <p className="mt-1 break-words text-xs text-[var(--color-muted)]">{selected.title}</p>}
               <dl className="mt-3 space-y-1 text-xs">
                 {selected.category && <Row k="Category" v={selected.category} />}
                 {selected.severity && <Row k="Severity" v={selected.severity} />}

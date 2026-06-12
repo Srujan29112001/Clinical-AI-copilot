@@ -19,9 +19,9 @@ export function ModelsUsed({ models }: { models: Record<string, string> }) {
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Cpu className="h-4 w-4 text-[var(--color-cyan)]" /> Model pipeline</h3>
       <div className="flex flex-wrap gap-2">
         {Object.entries(models).map(([k, v]) => (
-          <span key={k} className="chip !py-1">
+          <span key={k} className="chip max-w-full !py-1">
             <span className="text-[var(--color-faint)]">{labels[k] || k}:</span>
-            <span className="text-[var(--color-cyan)]">{v}</span>
+            <span className="break-all text-[var(--color-cyan)]">{v}</span>
           </span>
         ))}
       </div>
