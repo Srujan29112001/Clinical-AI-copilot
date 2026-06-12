@@ -113,8 +113,8 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# Documentation
-site/
+# Documentation (anchored to repo root so it does NOT match frontend/components/site/)
+/site/
 .cache/
 
 # Temporary files
